@@ -26,39 +26,54 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		{
 			RECT loc = {};
 			HWND fg = GetForegroundWindow();
+			HWND desktop = FindWindow(L"Progman", NULL);
+			if (NULL != desktop)
+				desktop = FindWindowEx(desktop, NULL, L"SHELLDLL_DefView", NULL);
+			if (NULL != desktop)
+				desktop = FindWindowEx(desktop, NULL, L"SysListView32", NULL);
 			GetWindowRect(fg, &loc);
 		
 			POINT p = {};
-			switch (msg.wParam)
-			{
-#define HALF(x,y) (((y)-(x))/2+(x))
-				case VK_LEFT:
-					p.x=loc.left-10;
-					p.y=HALF(loc.top,loc.bottom);
-					break;
-				case VK_RIGHT:
-					p.x=loc.right+10;
-					p.y=HALF(loc.top,loc.bottom);
-					break;
-				case VK_UP:
-					p.y=loc.top-10;
-					p.x=HALF(loc.left,loc.right);
-					break;
-				case VK_DOWN:
-					p.y=loc.bottom+10;
-					p.x=HALF(loc.left,loc.right);
-					break;
-				default:
-					MessageBeep(MB_ICONERROR);
-			}
+			for (
+				int distance = 10;
+				MonitorFromPoint(p, MONITOR_DEFAULTTONULL);
+				distance += 10) {
+				
+				switch (msg.wParam)
+				{
+	#define HALF(x,y) (((y)-(x))/2+(x))
+					case VK_LEFT:
+						p.x=loc.left-distance;
+						p.y=HALF(loc.top,loc.bottom);
+						break;
+					case VK_RIGHT:
+						p.x=loc.right+distance;
+						p.y=HALF(loc.top,loc.bottom);
+						break;
+					case VK_UP:
+						p.y=loc.top-distance;
+						p.x=HALF(loc.left,loc.right);
+						break;
+					case VK_DOWN:
+						p.y=loc.bottom+distance;
+						p.x=HALF(loc.left,loc.right);
+						break;
+					default:
+						MessageBeep(MB_ICONERROR);
+				}
 
-			HWND n = WindowFromPoint(p);
-			if (NULL == n)
-				MessageBeep(MB_ICONASTERISK);
-			else
-			{
-				if (!SetForegroundWindow(n))
-					MessageBeep(MB_ICONERROR);
+				HWND n = WindowFromPoint(p);
+				if (NULL == n)
+					MessageBeep(MB_ICONASTERISK);
+				else
+				{
+					if (desktop == n)
+						continue;
+
+					if (!SetForegroundWindow(n))
+						MessageBeep(MB_ICONERROR);
+					break;
+				}
 			}
 		}
 
