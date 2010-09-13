@@ -8,7 +8,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	HWND msgwnd = CreateWindow(L"STATIC", L"Shiftfocus window", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, GetModuleHandle(NULL), 0);
 
-	#define MAKE(x) (RegisterHotKey(msgwnd, x, MOD_CONTROL | MOD_WIN, x) == 0)
+#	define MAKE(x) (RegisterHotKey(msgwnd, x, MOD_CONTROL | MOD_WIN, x) == 0)
 	if ((msgwnd == NULL) || MAKE(VK_LEFT)
 						 || MAKE(VK_RIGHT)
 						 || MAKE(VK_UP)
@@ -41,7 +41,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				
 				switch (msg.wParam)
 				{
-	#define HALF(x,y) (((y)-(x))/2+(x))
+#					define HALF(x,y) (((y)-(x))/2+(x))
 					case VK_LEFT:
 						p.x=loc.left-distance;
 						p.y=HALF(loc.top,loc.bottom);
