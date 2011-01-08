@@ -1,29 +1,43 @@
-CC = cl /nologo /EHsc /MT /Os /Zi /D_UNICODE /DUNICODE
+CC = cl /nologo /EHsc /MD /Os /Zi /D_UNICODE /DUNICODE /W1 /Oi /GL /GS /Gy
+MSVCLINK = /OPT:REF /OPT:ICF
+LINK = /link /dynamicbase /nxcompat /ltcg /debug $(MSVCLINK)
+MT = mt /nologo -manifest $@.manifest -outputresource:$@;1
 
 all: aukiller.exe \
 	noelev.exe \
 	powerstatustray.exe \
 	quickkey.exe \
 	topkey.exe \
+	mousex.exe \
 	unrequireadmin.exe
 
 aukiller.exe: aukiller.cpp
-	$(CC) aukiller.cpp /link user32.lib
+	$(CC) aukiller.cpp $(LINK) user32.lib
+	$(MT)
 
 noelev.exe: noelev.cpp
-	$(CC) noelev.cpp
+	$(CC) noelev.cpp $(LINK)
+	$(MT)
 
 powerstatustray.exe: powerstatustray.cpp
-	$(CC) powerstatustray.cpp /link user32.lib shell32.lib
+	$(CC) powerstatustray.cpp $(LINK) user32.lib shell32.lib
+	$(MT)
 
 quickkey.exe: quickkey.cpp
-	$(CC) quickkey.cpp /link user32.lib
+	$(CC) quickkey.cpp $(LINK) user32.lib
+	$(MT)
+
+mousex.exe: mousex.cpp
+	$(CC) mousex.cpp $(LINK) xinput.lib user32.lib
+	$(MT)
 
 topkey.exe: topkey.cpp
-	$(CC) topkey.cpp /link user32.lib
+	$(CC) topkey.cpp $(LINK) user32.lib
+	$(MT)
 
 unrequireadmin.exe: unrequireadmin.cpp
-	$(CC) unrequireadmin.cpp
+	$(CC) unrequireadmin.cpp $(LINK)
+	$(MT)
 
 clean:
 	del *.obj

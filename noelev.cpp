@@ -39,7 +39,7 @@ int wmain(int argc, wchar_t *argv[])
 		return 4;
 	}
 
-	char nops[] = { 0x90, 0x90 };
+	char nops[] = { (char)0x90, (char)0x90 };
 
 	if (!WriteProcessMemory(us, target, nops, 2, NULL))
 	{
