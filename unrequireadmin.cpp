@@ -16,7 +16,7 @@ void ErrorHandler(const char* s)
 	throw std::exception(s);
 }
 
-int main(int argc, char*argv[])
+int wmain(int argc, wchar_t*argv[])
 {
 	try
 	{

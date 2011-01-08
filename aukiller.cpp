@@ -1,12 +1,11 @@
-// aakiller.cpp : Defines the entry point for the console application.
-//
-
-#include "stdafx.h"
+#include <windows.h>
+#include <cstdio>
+#include <tchar.h>
 
 int _tmain(int argc, _TCHAR* argv[])
 {
 	HWND hw;
-	hw=FindWindow(NULL,"Automatic Updates");
+	hw=FindWindow(NULL,L"Automatic Updates");
 	if ((long)hw)
 	{
 		if (argc>1)
