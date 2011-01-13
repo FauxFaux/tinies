@@ -28,19 +28,18 @@
 #include <utility>
 #include <sstream>
 
+const size_t MAX = 0x1000;
+
 typedef std::set<std::wstring> wstrset_t;
 typedef std::pair<wstrset_t, wstrset_t> doublepair_t;
 doublepair_t getOnOff()
 {
 	doublepair_t pairs;
-
-	const size_t max = 0x1000;
-	WCHAR str[max];
-	DWORD l = GetLogicalDriveStrings(max - 1, &str[0]);
+	WCHAR str[MAX];
+	DWORD l = GetLogicalDriveStrings(MAX - 1, &str[0]);
 	if (0 == l)
 		return pairs;
 
-	const std::wstring prefix = L"\\\\.\\";
 	for (DWORD i = 0; i < l; ++i)
 	{
 		const size_t len = wcslen(&str[i]);
