@@ -71,27 +71,19 @@ HICON HIcon;
 
 doublepair_t previous = getOnOff();
 
-void add(std::wstringstream &o, const wstrset_t &st)
+void add(WCHAR *buf, const wstrset_t &st)
 {
+	wcscat(buf, L"hi");
 	if (st.empty())
-		o << L"None.";
+		wcscat(buf, L"None.");
 	else
-		for (wstrset_t::const_iterator it = st.begin(); it != st.end(); ++it)
-			o << *it << " ";
+		for (wstrset_t::const_iterator it = st.begin(); it != st.end(); ++it) {
+			wcscat(buf, it->c_str());
+			wcscat(buf, L" ");
+		}
 }
 
-std::wstring stringify()
-{
-	std::wstringstream wss;
-	doublepair_t curr = getOnOff();
-
-	wss << L"On: ";  add(wss, curr.first);  wss << "\n";
-	wss << L"Off: "; add(wss, curr.second); wss << "\n";
-
-	return wss.str();
-}
-
-void SetBaloonTip(HWND hwndDlg, const std::wstring &title, const std::wstring &body)
+void SetBaloonTip(HWND hwndDlg, const std::wstring &title, const WCHAR *body)
 {
 	NOTIFYICONDATA  NotifyIconData;
 	memset(&NotifyIconData, 0, sizeof(NOTIFYICONDATA));
@@ -103,7 +95,7 @@ void SetBaloonTip(HWND hwndDlg, const std::wstring &title, const std::wstring &b
 	NotifyIconData.uTimeout = 10000;
 	NotifyIconData.uCallbackMessage = TRAY_MESSAGE;
 	wcscpy_s(NotifyIconData.szInfoTitle, title.c_str());
-	wcscpy_s(NotifyIconData.szInfo, body.c_str());
+	wcscpy_s(NotifyIconData.szInfo, body);
 	wcscpy_s(NotifyIconData.szTip, trayTip);
 	Shell_NotifyIcon(NIM_MODIFY, (NOTIFYICONDATA *)&NotifyIconData);
 }
@@ -117,9 +109,12 @@ wstrset_t newItems(const wstrset_t &old, const wstrset_t &now)
 	return ret;
 }
 
-void add(std::wstringstream &o, const bool singular, const wchar_t *msg)
+void add(WCHAR *buf, const bool singular, const WCHAR *msg)
 {
-	o << (singular ? L"is" : L"are") << L" now "<< msg << ".\n";
+	wcscat(buf, singular ? L"is" : L"are");
+	wcscat(buf, L" now");
+	wcscat(buf, msg);
+	wcscat(buf, L".\n");
 }
 
 LRESULT CALLBACK DialogProc(HWND hwndDlg,
@@ -130,9 +125,16 @@ LRESULT CALLBACK DialogProc(HWND hwndDlg,
 	switch(msg)
 	{
 	case TRAY_MESSAGE:
-		if(lParam == WM_LBUTTONUP)
-			SetBaloonTip(hwndDlg, L"Drive statuses:", stringify());
-		else if (lParam == WM_RBUTTONUP)
+		if(lParam == WM_LBUTTONUP) {
+			doublepair_t curr = getOnOff();
+			WCHAR wss[MAX];
+			wcscpy(wss, L"On: ");
+			add(wss, curr.first);
+			wcscat(wss, L"\nOff: ");
+			add(wss, curr.second);
+			wcscat(wss, L"\n");
+			SetBaloonTip(hwndDlg, L"Drive statuses:", wss);
+		} else if (lParam == WM_RBUTTONUP)
 			PostQuitMessage(0);
 		break;
 	case WM_TIMER:
@@ -142,7 +144,8 @@ LRESULT CALLBACK DialogProc(HWND hwndDlg,
 			{
 				wstrset_t nowOn = newItems(previous.first, curr.first),
 					nowOff = newItems(previous.second, curr.second);
-				std::wstringstream wss;
+				WCHAR wss[MAX];
+				wss[MAX] = 0;
 				if (!nowOn.empty())
 				{
 					add(wss, nowOn);
@@ -153,7 +156,7 @@ LRESULT CALLBACK DialogProc(HWND hwndDlg,
 					add(wss, nowOff);
 					add(wss, nowOff.size() == 1, L"off");
 				}
-				SetBaloonTip(hwndDlg, L"Drive status change:", wss.str());
+				SetBaloonTip(hwndDlg, L"Drive status change:", wss);
 				previous = curr;
 			}
 		}
