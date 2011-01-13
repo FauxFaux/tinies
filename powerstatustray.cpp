@@ -28,43 +28,32 @@
 #include <utility>
 #include <sstream>
 
-std::vector<std::wstring> getDrives()
-{
-	std::vector<std::wstring> things;
-	{
-		std::wstring whole;
-		{
-			const size_t max = 512;
-			wchar_t str[max];
-			size_t l = GetLogicalDriveStrings(max - 1, &str[0]);
-			whole = std::wstring(str, l);
-		}
-
-		std::wstring::size_type op = 0, p = 0;
-		while((p = whole.find(L'\0', 0)) != std::wstring::npos) 
-		{
-			things.push_back(whole.substr(0, p-1));
-			whole = whole.substr(p+1);
-		}
-	}
-	return things;
-}
-
 typedef std::set<std::wstring> wstrset_t;
 typedef std::pair<wstrset_t, wstrset_t> doublepair_t;
 doublepair_t getOnOff()
 {
-	const std::vector<std::wstring> things = getDrives();
 	doublepair_t pairs;
-	for (std::vector<std::wstring>::const_iterator it = things.begin(); it != things.end(); ++it)
+
+	const size_t max = 0x1000;
+	WCHAR str[max];
+	DWORD l = GetLogicalDriveStrings(max - 1, &str[0]);
+	if (0 == l)
+		return pairs;
+
+	const std::wstring prefix = L"\\\\.\\";
+	for (DWORD i = 0; i < l; ++i)
 	{
-		HANDLE h = CreateFile((L"\\\\.\\" + *it).c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+		const size_t len = wcslen(&str[i]);
+		str[i+len-1] = 0;
+		const std::wstring us = &str[i];
+		HANDLE h = CreateFile((L"\\\\.\\" + us).c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+		i += len;
 		BOOL b;
 		if (h != INVALID_HANDLE_VALUE && GetDevicePowerState(h, &b))
 			if (b)
-				pairs.first.insert(*it);
+				pairs.first.insert(us);
 			else
-				pairs.second.insert(*it);
+				pairs.second.insert(us);
 		CloseHandle(h);
 	}
 	return pairs;
