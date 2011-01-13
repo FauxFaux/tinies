@@ -42,17 +42,19 @@ doublepair_t getOnOff()
 
 	for (DWORD i = 0; i < l; ++i)
 	{
+		WCHAR buf[MAX];
+		wcscpy(buf, L"\\\\.\\");
 		const size_t len = wcslen(&str[i]);
 		str[i+len-1] = 0;
-		const std::wstring us = &str[i];
-		HANDLE h = CreateFile((L"\\\\.\\" + us).c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+		wcscat(buf, &str[i]);
+		HANDLE h = CreateFile(buf, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 		i += len;
 		BOOL b;
 		if (h != INVALID_HANDLE_VALUE && GetDevicePowerState(h, &b))
 			if (b)
-				pairs.first.insert(us);
+				pairs.first.insert(&str[i]);
 			else
-				pairs.second.insert(us);
+				pairs.second.insert(&str[i]);
 		CloseHandle(h);
 	}
 	return pairs;
