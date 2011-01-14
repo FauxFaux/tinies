@@ -32,7 +32,7 @@ mousex.exe: mousex.cpp
 	$(MT)
 
 topkey.exe: topkey.cpp
-	$(CC) topkey.cpp $(LINK) user32.lib
+	$(CC) topkey.cpp $(LINK) user32.lib shell32.lib ole32.lib
 	$(MT)
 
 unrequireadmin.exe: unrequireadmin.cpp
