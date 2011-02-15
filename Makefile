@@ -9,6 +9,7 @@ all: aukiller.exe \
 	quickkey.exe \
 	topkey.exe \
 	mousex.exe \
+	keydump.exe \
 	unrequireadmin.exe
 
 aukiller.exe: aukiller.cpp
