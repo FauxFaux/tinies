@@ -36,6 +36,10 @@ topkey.exe: topkey.cpp
 	$(CC) topkey.cpp $(LINK) user32.lib shell32.lib ole32.lib
 	$(MT)
 
+keydump.exe: keydump.cpp
+	$(CC) keydump.cpp $(LINK) user32.lib dinput8.lib
+	$(MT)
+
 unrequireadmin.exe: unrequireadmin.cpp
 	$(CC) unrequireadmin.cpp $(LINK)
 	$(MT)

@@ -1,7 +1,12 @@
-// boardjack.cpp : Defines the entry point for the console application.
-//
+#include "defines.h"
 
-#include "stdafx.h"
+#include <iostream>
+#include <stdio.h>
+#include <windows.h>
+
+#include <InitGuid.h>
+#define DIRECTINPUT_VERSION 0x800
+#include <dinput.h>
 
 void free_input(LPDIRECTINPUT8 lpdi)
 {
@@ -74,14 +79,10 @@ int main(int argc, wchar_t* argv[])
 		if (FAILED(DirectInput8Create(GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&di, NULL)))
 			throw "Can't create directinput";
 
-		Loki::ScopeGuard guard20 = Loki::MakeGuard(free_input, di);
-
 		LPDIRECTINPUTDEVICE8 dev;
 
 		if (FAILED(di->CreateDevice(GUID_SysKeyboard, &dev, NULL)))
 			throw "Can't create device";
-
-		Loki::ScopeGuard guard33 = Loki::MakeGuard(free_device, dev);
 
 		if (FAILED(dev->SetDataFormat(&c_dfDIKeyboard)))
 			throw "Can't set keyboard format";
@@ -90,7 +91,6 @@ int main(int argc, wchar_t* argv[])
 			throw "Can't set cooperative level.";
 
 		HANDLE ev = CreateEvent(NULL, FALSE, FALSE, L"lol, dongs, boardjack");
-		Loki::ScopeGuard guard49 = Loki::MakeGuard(CloseHandle, ev);
 
 		const size_t buffer_size = 50;
 		{
@@ -140,8 +140,6 @@ int main(int argc, wchar_t* argv[])
 	{
 		std::cout << "general failure" << std::endl;
 	}
-
-	std::cin.get();
 
 	return 7;
 }
