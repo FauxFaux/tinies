@@ -27,14 +27,27 @@
 int main(int argc, char **argv)
 {
 	HWND window_handle = FindWindow("SpotifyMainWindow", NULL);
-
+	
 	if (window_handle == NULL)
 	{
 		printf("Can not find spotify, is it running?\n");;
 		return 1;
 	}
 
-	SendMessage(window_handle, APPCOMMAND, 0, CMD_PLAYPAUSE);
+	int cmd;
+	if (argc > 1 && !strcmp(argv[1], "next"))
+		cmd = CMD_NEXT;
+	else if (argc > 1 && !strcmp(argv[1], "prev"))
+		cmd = CMD_PREVIOUS;
+	else if (argc > 1 && !strcmp(argv[1], "play"))
+		cmd = CMD_PLAYPAUSE;
+	else
+	{
+		printf("Usage: %s [prev|next|play]\n", argv[0]);
+		return 2;
+	}
+
+	SendMessage(window_handle, APPCOMMAND, 0, cmd);
 	return 0;
 }
 

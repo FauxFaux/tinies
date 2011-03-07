@@ -1,3 +1,3 @@
 spotifyplaypause:
-	winegcc -m32 spotify_playpause.c -o spotify_playpause
+	winegcc -m32 spotify_ctl.c -o spotify_ctl
 
