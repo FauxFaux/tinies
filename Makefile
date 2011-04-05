@@ -10,6 +10,7 @@ all: aukiller.exe \
 	topkey.exe \
 	mousex.exe \
 	keydump.exe \
+	loaddlls.exe \
 	unrequireadmin.exe
 
 aukiller.exe: aukiller.cpp
@@ -38,6 +39,10 @@ topkey.exe: topkey.cpp
 
 keydump.exe: keydump.cpp
 	$(CC) keydump.cpp $(LINK) user32.lib dinput8.lib
+	$(MT)
+
+loaddlls.exe: loaddlls.cpp
+	$(CC) loaddlls.cpp $(LINK)
 	$(MT)
 
 unrequireadmin.exe: unrequireadmin.cpp
