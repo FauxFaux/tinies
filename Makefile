@@ -11,6 +11,7 @@ all: aukiller.exe \
 	mousex.exe \
 	keydump.exe \
 	loaddlls.exe \
+	foobar2000-loader.exe \
 	unrequireadmin.exe
 
 aukiller.exe: aukiller.cpp
@@ -43,6 +44,10 @@ keydump.exe: keydump.cpp
 
 loaddlls.exe: loaddlls.cpp
 	$(CC) loaddlls.cpp $(LINK)
+	$(MT)
+
+foobar2000-loader.exe: foobar2000-loader.cpp
+	$(CC) foobar2000-loader.cpp $(LINK)
 	$(MT)
 
 unrequireadmin.exe: unrequireadmin.cpp
