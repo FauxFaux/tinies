@@ -10,6 +10,7 @@ all: aukiller.exe \
 	topkey.exe \
 	mousex.exe \
 	keydump.exe \
+	keytoputty.exe \
 	loaddlls.exe \
 	foobar2000-loader.exe \
 	unrequireadmin.exe
@@ -40,6 +41,10 @@ topkey.exe: topkey.cpp
 
 keydump.exe: keydump.cpp
 	$(CC) keydump.cpp $(LINK) user32.lib dinput8.lib
+	$(MT)
+
+keytoputty.exe: keytoputty.cpp
+	$(CC) keytoputty.cpp $(LINK) user32.lib dinput8.lib
 	$(MT)
 
 loaddlls.exe: loaddlls.cpp
