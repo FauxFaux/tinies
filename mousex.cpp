@@ -1,3 +1,5 @@
+#pragma comment(lib, "xinput.lib")
+#pragma comment(lib, "user32.lib")
 #include <windows.h>
 #include <xinput.h>
 #include <map>

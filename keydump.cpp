@@ -1,3 +1,6 @@
+#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "dinput8.lib")
+
 #include "defines.h"
 
 #include <iostream>

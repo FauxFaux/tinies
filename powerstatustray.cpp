@@ -1,5 +1,8 @@
 /* Tray code modified from http://damb.dk */ 
 
+#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "shell32.lib")
+
 #include "defines.h"
 
 #include <iostream>

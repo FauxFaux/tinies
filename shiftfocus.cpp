@@ -1,3 +1,5 @@
+#pragma comment(lib, "user32.lib")
+
 #include <windows.h>
 
 // Rei Resurreccion, CodeProject

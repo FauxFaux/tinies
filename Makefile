@@ -16,53 +16,10 @@ all: aukiller.exe \
 	shiftfocus.exe \
 	unrequireadmin.exe
 
-aukiller.exe: $*.cpp
-	$(CC) $*.cpp $(LINK) user32.lib
-	$(MT)
-
-noelev.exe: $*.cpp
+.cpp.exe:
 	$(CC) $*.cpp $(LINK)
 	$(MT)
 
-powerstatustray.exe: $*.cpp
-	$(CC) $*.cpp $(LINK) user32.lib shell32.lib
-	$(MT)
-
-quickkey.exe: $*.cpp
-	$(CC) $*.cpp $(LINK) user32.lib
-	$(MT)
-
-mousex.exe: $*.cpp
-	$(CC) $*.cpp $(LINK) xinput.lib user32.lib
-	$(MT)
-
-topkey.exe: $*.cpp
-	$(CC) $*.cpp $(LINK) user32.lib shell32.lib ole32.lib
-	$(MT)
-
-keydump.exe: $*.cpp
-	$(CC) $*.cpp $(LINK) user32.lib dinput8.lib
-	$(MT)
-
-keytoputty.exe: $*.cpp
-	$(CC) $*.cpp $(LINK) user32.lib dinput8.lib
-	$(MT)
-
-loaddlls.exe: $*.cpp
-	$(CC) $*.cpp $(LINK)
-	$(MT)
-
-foobar2000-loader.exe: $*.cpp
-	$(CC) $*.cpp $(LINK)
-	$(MT)
-
-shiftfocus.exe: $*.cpp
-	$(CC) $*.cpp $(LINK) user32.lib
-	$(MT)
-
-unrequireadmin.exe: $*.cpp
-	$(CC) $*.cpp $(LINK)
-	$(MT)
 
 clean:
 	del *.obj
