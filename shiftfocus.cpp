@@ -1,8 +1,17 @@
-// cl /MT shiftfocus.cpp user32.lib
-
-#define UNICODE
-
 #include <windows.h>
+
+// Rei Resurreccion, CodeProject
+BOOL CALLBACK enumWindowsProc(HWND hwnd, LPARAM lParam) {
+	HWND child = FindWindowEx(hwnd, NULL, L"SHELLDLL_DefView", NULL);
+	if (NULL != child) {
+		HWND desktop = FindWindowEx(child, NULL, L"SysListView32", NULL);
+		if (NULL != desktop) {
+			*(reinterpret_cast<HWND*>(lParam)) = desktop;
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -26,11 +35,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		{
 			RECT loc = {};
 			HWND fg = GetForegroundWindow();
-			HWND desktop = FindWindow(L"Progman", NULL);
-			if (NULL != desktop)
-				desktop = FindWindowEx(desktop, NULL, L"SHELLDLL_DefView", NULL);
-			if (NULL != desktop)
-				desktop = FindWindowEx(desktop, NULL, L"SysListView32", NULL);
+			HWND desktop = NULL;
+			EnumWindows(enumWindowsProc, (LPARAM)&desktop);
+			if (NULL == desktop)
+				MessageBoxA(0, "a", "a", 0);
 			GetWindowRect(fg, &loc);
 		
 			POINT p = {};
