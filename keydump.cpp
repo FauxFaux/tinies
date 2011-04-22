@@ -32,45 +32,8 @@ cp key_mapping[256];
 
 int main(int argc, wchar_t* argv[])
 {
-	key_mapping[DIK_A] = cp('a', 'A');
-	key_mapping[DIK_B] = cp('b', 'B');
-	key_mapping[DIK_C] = cp('c', 'C');
-	key_mapping[DIK_D] = cp('d', 'D');
-	key_mapping[DIK_E] = cp('e', 'E');
-	key_mapping[DIK_F] = cp('f', 'F');
-	key_mapping[DIK_G] = cp('g', 'G');
-	key_mapping[DIK_H] = cp('h', 'H');
-	key_mapping[DIK_I] = cp('i', 'I');
-	key_mapping[DIK_J] = cp('j', 'J');
-	key_mapping[DIK_K] = cp('k', 'K');
-	key_mapping[DIK_L] = cp('l', 'L');
-	key_mapping[DIK_M] = cp('m', 'M');
-	key_mapping[DIK_N] = cp('n', 'N');
-	key_mapping[DIK_O] = cp('o', 'O');
-	key_mapping[DIK_P] = cp('p', 'P');
-	key_mapping[DIK_Q] = cp('q', 'Q');
-	key_mapping[DIK_R] = cp('r', 'R');
-	key_mapping[DIK_S] = cp('s', 'S');
-	key_mapping[DIK_T] = cp('t', 'T');
-	key_mapping[DIK_U] = cp('u', 'U');
-	key_mapping[DIK_V] = cp('v', 'V');
-	key_mapping[DIK_W] = cp('w', 'W');
-	key_mapping[DIK_X] = cp('x', 'X');
-	key_mapping[DIK_Y] = cp('y', 'Y');
-	key_mapping[DIK_Z] = cp('z', 'Z');
-	key_mapping[DIK_SPACE] = cp(VK_SPACE, VK_SPACE);
-	key_mapping[DIK_BACKSPACE] = cp(VK_BACK, VK_BACK);
-	key_mapping[DIK_COMMA] = cp('<', ',');
-	key_mapping[DIK_PERIOD] = cp('>', '.');
-	key_mapping[DIK_RETURN] = cp(VK_RETURN, VK_RETURN);
-	key_mapping[DIK_1] = cp('1', '1');
-
 	try
 	{
-		HWND putty = FindWindow(L"PuTTY", NULL);
-		if (!putty)
-			throw "No putty! D:";
-
 		HWND wnd;
 		if (FAILED(wnd = CreateWindow(NULL, NULL, 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, NULL, NULL)))
 			throw "Can't create message window";
@@ -90,7 +53,7 @@ int main(int argc, wchar_t* argv[])
 		if (FAILED(dev->SetCooperativeLevel(wnd, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
 			throw "Can't set cooperative level.";
 
-		HANDLE ev = CreateEvent(NULL, FALSE, FALSE, L"lol, dongs, boardjack");
+		HANDLE ev = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 		const size_t buffer_size = 50;
 		{
@@ -121,9 +84,7 @@ int main(int argc, wchar_t* argv[])
 				throw "Couldn't get data";
 			for (size_t i = 0; i < items; ++i)
 				if (buffer[i].dwData)
-					if (key_mapping[buffer[i].dwOfs])
-						PostMessage(putty, WM_KEYDOWN, key_mapping[buffer[i].dwOfs].sh, 0);	
-			//				std::cout << buffer[i].dwData << ", " << buffer[i].dwOfs << std::endl;
+					std::cout << buffer[i].dwData << ", " << buffer[i].dwOfs << std::endl;
 		}
 		return 0;
 
