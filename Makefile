@@ -1,4 +1,4 @@
-CC = cl /nologo /EHsc /MD /Os /Zi /D_UNICODE /DUNICODE /W1 /Oi /GL /GS /Gy
+CC = cl /nologo /EHsc /MD /Os /Zi /D_UNICODE /DUNICODE /W2 /Oi /GL /GS /Gy
 MSVCLINK = /OPT:REF /OPT:ICF
 LINK = /link /dynamicbase /nxcompat /ltcg /debug $(MSVCLINK) /manifest
 MT = mt /nologo -manifest $@.manifest -outputresource:$@;1

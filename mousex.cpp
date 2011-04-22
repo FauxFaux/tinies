@@ -78,7 +78,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			buttons current;
 			current[bLeft] = xis.Gamepad.wButtons & XINPUT_GAMEPAD_A || xis.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB;
 			current[bRight] = xis.Gamepad.wButtons & XINPUT_GAMEPAD_B || xis.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
-			current[bMiddle] = xis.Gamepad.wButtons & XINPUT_GAMEPAD_X;
+			current[bMiddle] = 0 != (xis.Gamepad.wButtons & XINPUT_GAMEPAD_X);
 
 			for (size_t i = 0; i < BUTT_COUNT; ++i)
 				if (current[static_cast<Butts>(i)] && !last_frame[static_cast<Butts>(i)])

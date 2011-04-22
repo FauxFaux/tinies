@@ -27,7 +27,7 @@ int CALLBACK wWinMain(
 	STARTUPINFO si = {0};
 	si.cb = sizeof(si);
 	PROCESS_INFORMATION pi = {0};
-	wchar_t *p = wcsdup(L"foobar2000.exe");
+	wchar_t *p = _wcsdup(L"foobar2000.exe");
 	if (!CreateProcess(NULL, p, NULL, NULL, FALSE, DEBUG_ONLY_THIS_PROCESS, 
 			NULL, NULL, &si, &pi))
 		ERROH(L"start foobar2000.exe");

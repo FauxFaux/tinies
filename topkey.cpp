@@ -35,7 +35,7 @@ bool explorerWindow(HWND hwnd, WCHAR *buf) {
 									if (SUCCEEDED(pfv->GetFolder(IID_IPersistFolder2, (void**)&ppf2))) {
 										LPITEMIDLIST pidlFolder;
 										if (SUCCEEDED(ppf2->GetCurFolder(&pidlFolder))) {
-											ret = SHGetPathFromIDList(pidlFolder, buf);
+											ret = TRUE == SHGetPathFromIDList(pidlFolder, buf);
 											CoTaskMemFree(pidlFolder);
 										}
 										ppf2->Release();
