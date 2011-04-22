@@ -92,10 +92,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	MSG msg;
-	while(GetMessage(&msg, msgwnd, 0, 0))
-	{
-		if (msg.message == WM_HOTKEY)
-		{
+	BOOL ret;
+	while (0 != (ret = GetMessage(&msg, msgwnd, 0, 0))) {
+		if (-1 == ret)
+			return 1;
+
+		switch (msg.message) {
+		case WM_DESTROY:
+			PostQuitMessage(0);
+			break;
+
+		case WM_HOTKEY: {
 			switch (msg.wParam)
 			{
 				case ONTOP: {
@@ -124,6 +131,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					break;
 			}
 			
+		} break;
 		}
 
 		TranslateMessage(&msg);

@@ -39,11 +39,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	onUp[bRight] = MOUSEEVENTF_RIGHTUP;
 	onUp[bMiddle] = MOUSEEVENTF_MIDDLEUP;
 
+	BOOL ret;
+	while (0 != (ret = GetMessage(&msg, msgwnd, 0, 0))) {
+		if (-1 == ret)
+			return 1;
 
-	while(GetMessage(&msg, msgwnd, 0, 0))
-	{
-		if (msg.message == WM_TIMER)
-		{
+		switch (msg.message) {
+		case WM_DESTROY:
+			PostQuitMessage(0);
+			break;
+
+		case WM_TIMER: {
 			XInputGetState(0, &xis);
 
 			if( (xis.Gamepad.sThumbLX < XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE && 
@@ -97,6 +103,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			inp.mi.dwFlags = flags;
 
 			SendInput(1, &inp, sizeof(inp));
+		} break;
 		}
 
 		TranslateMessage(&msg);

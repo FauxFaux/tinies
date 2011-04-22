@@ -122,6 +122,10 @@ LRESULT CALLBACK DialogProc(HWND hwndDlg,
 {
 	switch(msg)
 	{
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+
 	case TRAY_MESSAGE:
 		if(lParam == WM_LBUTTONUP)
 			SetBaloonTip(hwndDlg, L"Drive statuses:", stringify());
