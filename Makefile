@@ -13,6 +13,7 @@ all: aukiller.exe \
 	keytoputty.exe \
 	loaddlls.exe \
 	foobar2000-loader.exe \
+	shiftfocus.exe \
 	unrequireadmin.exe
 
 aukiller.exe: aukiller.cpp
@@ -53,6 +54,10 @@ loaddlls.exe: loaddlls.cpp
 
 foobar2000-loader.exe: foobar2000-loader.cpp
 	$(CC) foobar2000-loader.cpp $(LINK)
+	$(MT)
+
+shiftfocus.exe: shiftfocus.cpp
+	$(CC) shiftfocus.cpp $(LINK) user32.lib
 	$(MT)
 
 unrequireadmin.exe: unrequireadmin.cpp
