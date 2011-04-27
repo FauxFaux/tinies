@@ -9,6 +9,13 @@
  *  Intended use is to control Spotify running under Linux with Wine.
  */
 
+#undef _UNICODE
+#undef UNICODE
+
+#ifdef _MSC_VER
+#	pragma comment(lib, "user32.lib")
+#endif
+
 #include <windows.h>
 #include <stdio.h>
 
@@ -26,6 +33,7 @@
 
 int main(int argc, char **argv)
 {
+	int cmd;
 	HWND window_handle = FindWindow("SpotifyMainWindow", NULL);
 	
 	if (window_handle == NULL)
@@ -34,7 +42,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	int cmd;
 	if (argc > 1 && !strcmp(argv[1], "next"))
 		cmd = CMD_NEXT;
 	else if (argc > 1 && !strcmp(argv[1], "prev"))
