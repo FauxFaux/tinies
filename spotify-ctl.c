@@ -13,11 +13,15 @@
 #undef UNICODE
 
 #ifdef _MSC_VER
+#	define SC_WIN
+#endif
+
+#ifdef SC_WIN
 #	pragma comment(lib, "user32.lib")
 #endif
 
 #include <windows.h>
-#include <stdio.h>
+#include <string.h>
 
 #define VERSION "0.5"
 
@@ -31,26 +35,40 @@
 #define CMD_PREVIOUS 786432
 #define CMD_NEXT 720896
 
+#ifdef SC_WIN
+#	define ALERT(x) MessageBox(0, x, "spotify-ctl", 0);
+#else
+#	include <stdio.h>
+#	define ALERT(x) printf(x "\n");
+#endif
+
+#ifdef SC_WIN
+#define argc 2
+int CALLBACK WinMain(HINSTANCE hi, HINSTANCE hp, LPSTR param, int show)
+#else
+#define param argv[1]
 int main(int argc, char **argv)
+#endif
+
 {
 	int cmd;
 	HWND window_handle = FindWindow("SpotifyMainWindow", NULL);
 	
 	if (window_handle == NULL)
 	{
-		printf("Can not find spotify, is it running?\n");;
+		ALERT("Can not find spotify, is it running?");;
 		return 1;
 	}
 
-	if (argc > 1 && !strcmp(argv[1], "next"))
+	if (argc > 1 && !strcmp(param, "next"))
 		cmd = CMD_NEXT;
-	else if (argc > 1 && !strcmp(argv[1], "prev"))
+	else if (argc > 1 && !strcmp(param, "prev"))
 		cmd = CMD_PREVIOUS;
-	else if (argc > 1 && !strcmp(argv[1], "play"))
+	else if (argc > 1 && !strcmp(param, "play"))
 		cmd = CMD_PLAYPAUSE;
 	else
 	{
-		printf("Usage: %s [prev|next|play]\n", argv[0]);
+		ALERT("Usage: [prev|next|play]");
 		return 2;
 	}
 

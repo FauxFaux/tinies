@@ -21,6 +21,10 @@ all: aukiller.exe \
 	$(CC) $*.cpp $(LINK)
 	$(MT)
 
+.c.exe:
+	$(CC) $*.c $(LINK)
+	$(MT)
+	
 
 clean:
 	del *.obj
