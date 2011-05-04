@@ -4,6 +4,8 @@
 #include <windows.h>
 #include <shlobj.h>
 
+#include "inc-getDesktopWindow.cpp"
+
 enum Hotkeys {
 	ONTOP,
 	TERMINAL,
@@ -58,6 +60,22 @@ bool explorerWindow(HWND hwnd, WCHAR *buf) {
 		}
 		psw->Release();
 	}
+	return ret;
+}
+
+bool desktopWindow(HWND h, WCHAR *buf) {
+	HWND desktop = getDesktopWindow();
+	while (h != desktop && NULL != (desktop = GetParent(desktop)));
+
+	if (NULL == desktop)
+		return false;
+
+	PWSTR path;
+	if (FAILED(SHGetKnownFolderPath(FOLDERID_Desktop, 0, NULL, &path)))
+		return false;
+
+	const bool ret = 0 == wcscpy_s(buf, MAX_PATH, path);
+	CoTaskMemFree(path);
 	return ret;
 }
 
@@ -124,6 +142,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					HWND fg = GetForegroundWindow();
 					WCHAR buf[MAX] = {};
 					explorerWindow(fg, buf)
+						|| desktopWindow(fg, buf)
 						|| 0 != GetWindowText(fg, buf, MAX);
 					clean(buf);
 					ShellExecute(fg, NULL, L"cmd", NULL, buf, SW_SHOW);
