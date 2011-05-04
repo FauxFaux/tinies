@@ -63,6 +63,16 @@ bool explorerWindow(HWND hwnd, WCHAR *buf) {
 	return ret;
 }
 
+bool getKnownFolderPath(REFKNOWNFOLDERID id, WCHAR *buf) {
+	PWSTR path;
+	if (FAILED(SHGetKnownFolderPath(id, 0, NULL, &path)))
+		return false;
+
+	const bool ret = 0 == wcscpy_s(buf, MAX_PATH, path);
+	CoTaskMemFree(path);
+	return ret;
+}
+
 bool desktopWindow(HWND h, WCHAR *buf) {
 	HWND desktop = getDesktopWindow();
 	while (h != desktop && NULL != (desktop = GetParent(desktop)));
@@ -70,13 +80,11 @@ bool desktopWindow(HWND h, WCHAR *buf) {
 	if (NULL == desktop)
 		return false;
 
-	PWSTR path;
-	if (FAILED(SHGetKnownFolderPath(FOLDERID_Desktop, 0, NULL, &path)))
-		return false;
+	return getKnownFolderPath(FOLDERID_Desktop, buf);
+}
 
-	const bool ret = 0 == wcscpy_s(buf, MAX_PATH, path);
-	CoTaskMemFree(path);
-	return ret;
+bool getDefaultFolder(WCHAR *buf) {
+	return getKnownFolderPath(FOLDERID_Profile, buf);
 }
 
 /** Repeatedly trim a string at '\'s and ' 's until it's a directory */
@@ -93,8 +101,13 @@ void clean(WCHAR *buf) {
 				*slash = 0;
 			else
 				*space = 0;
-		else
-			return;
+		else {
+			const size_t len = wcsnlen_s(buf, MAX_PATH);
+			if (len > 0)
+				buf[len-1] = 0;
+			else
+				return;
+		}
 	}
 }
 
@@ -145,6 +158,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 						|| desktopWindow(fg, buf)
 						|| 0 != GetWindowText(fg, buf, MAX);
 					clean(buf);
+
+					if (!*buf)
+						getDefaultFolder(buf);
+
 					ShellExecute(fg, NULL, L"cmd", NULL, buf, SW_SHOW);
 				} break;
 				
