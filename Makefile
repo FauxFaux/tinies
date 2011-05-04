@@ -15,6 +15,7 @@ all: aukiller.exe \
 	foobar2000-loader.exe \
 	shiftfocus.exe \
 	spotify-ctl.exe \
+	media-ctl.exe \
 	unrequireadmin.exe
 
 .cpp.exe:
