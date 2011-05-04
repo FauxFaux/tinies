@@ -15,6 +15,12 @@ BOOL CALLBACK enumWindowsProc(HWND hwnd, LPARAM lParam) {
 	return TRUE;
 }
 
+HWND getDesktopWindow() {
+	HWND desktop = NULL;
+	EnumWindows(enumWindowsProc, (LPARAM)&desktop);
+	return desktop;
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	HWND msgwnd = CreateWindow(L"STATIC", L"Shiftfocus window", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, GetModuleHandle(NULL), 0);
@@ -44,10 +50,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		case WM_HOTKEY: {
 			RECT loc = {};
 			HWND fg = GetForegroundWindow();
-			HWND desktop = NULL;
-			EnumWindows(enumWindowsProc, (LPARAM)&desktop);
-			if (NULL == desktop)
-				MessageBoxA(0, "a", "a", 0);
+			HWND desktop = getDesktopWindow();
 			GetWindowRect(fg, &loc);
 		
 			POINT p = {};
