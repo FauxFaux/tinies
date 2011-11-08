@@ -4,6 +4,8 @@ BOOL CALLBACK enumWindowsProc(HWND hwnd, LPARAM lParam) {
 	if (NULL != child) {
 		HWND desktop = FindWindowEx(child, NULL, L"SysListView32", NULL);
 		if (NULL != desktop) {
+			if (!IsWindowVisible(desktop))
+				desktop = child;
 			*(reinterpret_cast<HWND*>(lParam)) = desktop;
 			return FALSE;
 		}
