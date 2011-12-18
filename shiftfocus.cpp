@@ -65,7 +65,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 						MessageBeep(MB_ICONERROR);
 				}
 
-				HWND n = WindowFromPoint(p);
+				HWND n = ChildWindowFromPoint(GetDesktopWindow(), p);
 				if (NULL == n)
 					MessageBeep(MB_ICONASTERISK);
 				else
