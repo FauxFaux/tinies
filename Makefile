@@ -16,6 +16,7 @@ all: aukiller.exe \
 	shiftfocus.exe \
 	spotify-ctl.exe \
 	media-ctl.exe \
+	unsigntool.exe \
 	unrequireadmin.exe
 
 .cpp.exe:
