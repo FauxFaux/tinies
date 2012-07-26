@@ -9,6 +9,7 @@
 enum Hotkeys {
 	ONTOP,
 	TERMINAL,
+	LOCKOFF,
 	EXIT,
 };
 
@@ -117,8 +118,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	HWND msgwnd = CreateWindow(L"STATIC", L"Topkey window", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, GetModuleHandle(NULL), 0);
 
 	if ((msgwnd == NULL) || (RegisterHotKey(msgwnd, ONTOP, MOD_WIN, 'W') == 0)
-											 || (RegisterHotKey(msgwnd, TERMINAL, MOD_WIN, VK_RETURN) == 0)
-											 || (RegisterHotKey(msgwnd, EXIT, MOD_CONTROL | MOD_WIN, 'W') == 0))
+						 || (RegisterHotKey(msgwnd, TERMINAL, MOD_WIN, VK_RETURN) == 0)
+						 || (RegisterHotKey(msgwnd, LOCKOFF, MOD_CONTROL | MOD_ALT | MOD_SHIFT, 'L') == 0)
+						 || (RegisterHotKey(msgwnd, EXIT, MOD_CONTROL | MOD_WIN, 'W') == 0))
 	{
 		MessageBox(msgwnd, L"Unable to register hotkeys, exiting.", L"Error", MB_ICONERROR | MB_OK);
 		DestroyWindow(msgwnd);
@@ -149,7 +151,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					SetWindowPos(fg, insertAfter, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE);
 					MessageBeep(MB_OK);
 				} break;
-		
+
+				case LOCKOFF: {
+					Sleep(5);
+					LockWorkStation();
+					Sleep(500);
+					SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, 2);
+				} break;
+
 				case TERMINAL: {
 					const int MAX = 512;
 					HWND fg = GetForegroundWindow();
