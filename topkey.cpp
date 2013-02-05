@@ -117,10 +117,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	CoInitialize(NULL);
 	HWND msgwnd = CreateWindow(L"STATIC", L"Topkey window", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, GetModuleHandle(NULL), 0);
 
-	if ((msgwnd == NULL) || (RegisterHotKey(msgwnd, ONTOP, MOD_WIN, 'W') == 0)
-						 || (RegisterHotKey(msgwnd, TERMINAL, MOD_WIN, VK_RETURN) == 0)
+	if ((msgwnd == NULL) || (RegisterHotKey(msgwnd, ONTOP, MOD_CONTROL | MOD_WIN, 'W') == 0)
+						 || (RegisterHotKey(msgwnd, TERMINAL, MOD_CONTROL | MOD_WIN, VK_RETURN) == 0)
 						 || (RegisterHotKey(msgwnd, LOCKOFF, MOD_CONTROL | MOD_ALT | MOD_SHIFT, 'L') == 0)
-						 || (RegisterHotKey(msgwnd, EXIT, MOD_CONTROL | MOD_WIN, 'W') == 0))
+						 || (RegisterHotKey(msgwnd, EXIT, MOD_CONTROL | MOD_SHIFT | MOD_WIN, 'W') == 0))
 	{
 		MessageBox(msgwnd, L"Unable to register hotkeys, exiting.", L"Error", MB_ICONERROR | MB_OK);
 		DestroyWindow(msgwnd);
