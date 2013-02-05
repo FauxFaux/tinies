@@ -27,7 +27,9 @@ all: aukiller.exe \
 .c.exe:
 	$(CC) $*.c $(LINK)
 	$(MT)
-	
+
+sign:
+	signtool sign /a /tr "http://www.startssl.com/timestamp" *.exe
 
 clean:
 	del *.obj
