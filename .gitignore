@@ -5,3 +5,5 @@
 *.pdb
 *.so
 btrfs_puncher
+*~
+*.swp
