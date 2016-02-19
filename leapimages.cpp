@@ -52,18 +52,19 @@ void SampleListener::onDisconnect(const Controller& controller) {
 void SampleListener::onExit(const Controller& controller) {
 }
 
+long counter = 0;
 std::map<int, int> circle_pos;
-void dump(char *position, Leap::Image &img) {
+void dump(const char *position, Leap::Image img) {
   char name[60];
-  sprintf(name, "%s%06d.pgm", postion, counter);
+  sprintf(name, "%s%06d.pgm", position, counter);
   FILE *f = fopen(name, "wb+");
   std::cout << img.width() << ", " << img.height() << std::endl;
   fprintf(f, "P5\n%d %d\n255\n", img.width(), img.height());
+  fwrite(img.data(), img.width()*img.height(), 1, f);
   fflush(f);
   fclose(f);
 }
 
-long counter = 0;
 
 void SampleListener::onFrame(const Controller& controller) {
   const Frame frame = controller.frame();
@@ -71,6 +72,7 @@ void SampleListener::onFrame(const Controller& controller) {
   const Leap::ImageList imgs = frame.images();
   dump("left", imgs[0]);
   dump("right", imgs[1]);
+  ++counter;
 }
 
 void SampleListener::onFocusGained(const Controller& controller) {
@@ -94,7 +96,6 @@ int main(int argc, char** argv) {
 
   controller.addListener(listener);
 
-//  controller.setPolicyFlags(Leap::Controller::POLICY_BACKGROUND_FRAMES);
   controller.setPolicy(Leap::Controller::POLICY_IMAGES);
 
   sleep(1000 * 1000 * 1000l);
