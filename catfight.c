@@ -16,7 +16,7 @@
 #define check(func, cond) \
     if (!(cond)) { \
         perror(func); \
-        assert(cond); \
+        exit(4); \
     }
 
 // 22 ~= log(2^64)/log(10) + 1
@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
             ssize_t copy = copy_file_range(src_fd, NULL, fd, NULL, remaining, 0);
             if (-1 == copy) {
                 if (src_len == remaining // it's the first loop
-                        && (ENOSYS == errno || EXDEV == errno)
+                        && (ENOSYS == errno || EXDEV == errno || EINVAL == errno)
                         ) {
                             copy_fallback(src_fd, fd, src_len);
                             break;
