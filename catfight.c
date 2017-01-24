@@ -10,6 +10,7 @@
 
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <sys/sendfile.h>
 #include <sys/syscall.h>
 
 #define check(func, cond) \
@@ -44,12 +45,24 @@ static uint64_t read_hint(const char *hint_path) {
     const size_t buf_size = 22;
     char buf[buf_size];
     ssize_t found = readlink(hint_path, buf, buf_size);
-    if (found < 1 || found >= buf_size) {
+    if (found < 1 || found >= (ssize_t) buf_size) {
         perror("warning: readlink");
         return 0;
     }
     buf[found] = '\0';
     return atoll(buf);
+}
+
+static void copy_fallback(int from, int to, size_t len) {
+    size_t remaining = len;
+    do {
+        ssize_t sent = sendfile(to, from, NULL, remaining);
+        if (-1 == sent) {
+            perror("sendfile");
+            exit(3);
+        }
+        remaining -= sent;
+    } while (remaining > 0);
 }
 
 int main(int argc, char *argv[]) {
@@ -99,8 +112,23 @@ int main(int argc, char *argv[]) {
         ssize_t written = write(fd, &src_len, sizeof(src_len));
         check("write len", written == sizeof(src_len));
 
-        ssize_t copy = copy_file_range(src_fd, NULL, fd, NULL, src_len, 0);
-        check("copy_file_range", copy == src_len);
+        size_t remaining = src_len;
+        do {
+            ssize_t copy = copy_file_range(src_fd, NULL, fd, NULL, remaining, 0);
+            if (-1 == copy) {
+                if (src_len == remaining // it's the first loop
+                        && (ENOSYS == errno || EXDEV == errno)
+                        ) {
+                            copy_fallback(src_fd, fd, src_len);
+                            break;
+                }
+
+                perror("copy_file_range");
+                exit(3);
+            }
+            printf("lol\n");
+            remaining -= copy;
+        } while (remaining > 0);
 
         int src_close = close(src_fd);
         check("close src", -1 != src_close);
