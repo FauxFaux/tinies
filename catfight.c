@@ -24,10 +24,9 @@ const size_t max_number_rendering = 22;
 
 
 static loff_t copy_file_range(int fd_in, loff_t *off_in, int fd_out,
-                loff_t *off_out, size_t len, unsigned int flags)
-{
+                              loff_t *off_out, size_t len, unsigned int flags) {
     return syscall(__NR_copy_file_range, fd_in, off_in, fd_out,
-                    off_out, len, flags);
+                   off_out, len, flags);
 }
 
 static size_t align16(size_t val) {
@@ -93,7 +92,7 @@ int main(int argc, char *argv[]) {
 
     for (uint64_t target_num = hint; target_num < UINT64_MAX; ++target_num) {
         sprintf(target_path, "%s.%022" PRIu64, dest_root, target_num);
-        int fd = open(target_path, O_CREAT|O_WRONLY, 0744);
+        int fd = open(target_path, O_CREAT | O_WRONLY, 0744);
         check("open", -1 != fd);
         int lock = flock(fd, LOCK_EX | LOCK_NB);
         if (lock) {
@@ -117,12 +116,12 @@ int main(int argc, char *argv[]) {
             ssize_t copy = copy_file_range(src_fd, NULL, fd, NULL, remaining, 0);
             if (-1 == copy) {
                 if (src_len == remaining // it's the first loop
-                        && (ENOSYS == errno // the kernel doesn't support it
-                            || EXDEV == errno // the files are incompatible due to devices
-                            || EINVAL == errno) // the filesystem doesn't like us, e.g. block alignment
+                    && (ENOSYS == errno // the kernel doesn't support it
+                        || EXDEV == errno // the files are incompatible due to devices
+                        || EINVAL == errno) // the filesystem doesn't like us, e.g. block alignment
                         ) {
-                            copy_fallback(src_fd, fd, src_len);
-                            break;
+                    copy_fallback(src_fd, fd, src_len);
+                    break;
                 }
 
                 perror("copy_file_range");
