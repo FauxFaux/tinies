@@ -13,6 +13,8 @@
 #include <sys/sendfile.h>
 #include <sys/syscall.h>
 #include <byteswap.h>
+#include <stdbool.h>
+#include <time.h>
 
 #define check(func, cond) \
     if (!(cond)) { \
@@ -41,12 +43,45 @@ static char *append(const char *base, const char *extra) {
     return created;
 }
 
+static void write_hint(const char *hint_path, uint64_t new_val) {
+    srand((31 * (31 * (31 * (unsigned int) clock()) + (unsigned int) time(NULL)) + getpid()));
+    char dest_val[max_number_rendering];
+    sprintf(dest_val, "/%" PRIu64, new_val);
+
+    const size_t avail = strlen(hint_path) + 16;
+    char *temp_path = calloc(sizeof(char), avail);
+    assert(temp_path);
+
+    try_another:
+    snprintf(temp_path, avail, "%s.%d~", hint_path, rand());
+    if (-1 == symlink(dest_val, temp_path)) {
+        if (EEXIST == errno) {
+            goto try_another;
+        }
+
+        perror("warning: couldn't create hint temporary file");
+        goto fail;
+    }
+
+    if (-1 == rename(temp_path, hint_path)) {
+        perror("warning: couldn't update hint");
+        if (-1 == unlink(temp_path)) {
+            perror("warning: ...and couldn't remove hint temporary file");
+        }
+    }
+
+    fail:
+    free(temp_path);
+}
+
 static uint64_t read_hint(const char *hint_path) {
-    const size_t buf_size = 22;
+    const size_t buf_size = max_number_rendering;
     char buf[buf_size];
     ssize_t found = readlink(hint_path, buf, buf_size);
     if (-1 == found) {
-        if (ENOENT != errno) {
+        if (ENOENT == errno) {
+            write_hint(hint_path, 0);
+        } else {
             perror("warning: readlink");
         }
         return 0;
@@ -57,7 +92,7 @@ static uint64_t read_hint(const char *hint_path) {
         return 0;
     }
     buf[found] = '\0';
-    long long int val = atoll(buf);
+    long long int val = atoll(buf + 1);
     if (val < 0) {
         fprintf(stderr, "warning: invalid link value, ignoring\n");
         return 0;
@@ -141,11 +176,7 @@ static int try_fread_fwrite(int src_fd, int dest_fd, const size_t len) {
         remaining -= to_read;
     } while (remaining > 0);
 
-    if (0 != fclose(src)) {
-        return 4;
-    }
-
-    if (0 != fclose(dest)) {
+    if (0 != fflush(dest)) {
         return 5;
     }
 
@@ -180,8 +211,8 @@ int main(int argc, char *argv[]) {
         switch (opt) {
             case 'b': {
                 int64_t val = atoll(optarg);
-                if (val < 0) {
-                    fprintf(stderr, "-b %" PRId64 " must be >0\n", val);
+                if (val <= 16) {
+                    fprintf(stderr, "-b %" PRId64 " must be >16\n", val);
                     return 2;
                 }
                 block_size = (uint64_t) val;
@@ -222,6 +253,7 @@ int main(int argc, char *argv[]) {
 
     char *hint_path = append(dest_root, ".hint");
     const uint64_t hint = read_hint(hint_path);
+    bool skipped_due_to_locking = false;
 
     for (uint64_t target_num = hint; target_num < UINT64_MAX; ++target_num) {
         sprintf(target_path, "%s.%022" PRIu64, dest_root, target_num);
@@ -231,6 +263,7 @@ int main(int argc, char *argv[]) {
         if (lock) {
             const int lock_err = errno;
             if (EWOULDBLOCK == lock_err) {
+                skipped_due_to_locking = true;
                 continue;
             }
             check("flock", lock);
@@ -240,6 +273,13 @@ int main(int argc, char *argv[]) {
         check("lseek", -1 != seek);
         seek = lseek(fd, 16 - (seek % 16), SEEK_CUR);
         check("lseek 2", -1 != seek);
+
+        if (seek >= block_size) {
+            if (-1 == close(fd)) {
+                perror("warning: close unwanted file");
+            }
+            continue;
+        }
 
         ssize_t written = write(fd, &src_len, sizeof(src_len));
         check("write len", written == sizeof(src_len));
@@ -253,7 +293,11 @@ int main(int argc, char *argv[]) {
         int dest_close = close(fd);
         check("close dest", -1 != dest_close);
 
-        printf("%" PRIu64 "\n", seek);
+        printf("%" PRIu64 "\n", target_num * block_size + seek);
+
+        if (!skipped_due_to_locking && target_num > hint) {
+            write_hint(hint_path, target_num);
+        }
 
         return 0;
     }
