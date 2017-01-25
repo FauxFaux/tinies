@@ -166,14 +166,45 @@ static int copy_file(int src_fd, int dest_fd, const size_t len) {
     return try_fread_fwrite(src_fd, dest_fd, len);
 }
 
+static void usage(const char *name) {
+    fprintf(stderr, "usage: %s [-b block-size-in-bytes] [-e extra-data] to from\n", name);
+}
+
 int main(int argc, char *argv[]) {
-    if (3 != argc) {
-        fprintf(stderr, "usage: %s to from\n", argv[0]);
+
+    char *extra = NULL;
+    uint64_t block_size = 1 * 1024ULL * 1024 * 1024;
+    int opt;
+
+    while ((opt = getopt(argc, argv, "b:e:")) != -1) {
+        switch (opt) {
+            case 'b': {
+                int64_t val = atoll(optarg);
+                if (val < 0) {
+                    fprintf(stderr, "-b %" PRId64 " must be >0\n", val);
+                    return 2;
+                }
+                block_size = (uint64_t) val;
+                break;
+            }
+            case 'e':
+                extra = optarg;
+                break;
+            case '?':
+                usage(argv[0]);
+                return 2;
+            default:
+                abort();
+        }
+    }
+
+    if (optind + 2 != argc) {
+        usage(argv[0]);
         return 2;
     }
 
-    const char *dest_root = argv[1];
-    const char *src = argv[2];
+    const char *dest_root = argv[optind];
+    const char *src = argv[optind + 1];
 
     char *target_path = strndup(dest_root, strlen(dest_root) + max_number_rendering);
     check("strndup target", target_path);
