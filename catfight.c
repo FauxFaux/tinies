@@ -117,7 +117,9 @@ int main(int argc, char *argv[]) {
             ssize_t copy = copy_file_range(src_fd, NULL, fd, NULL, remaining, 0);
             if (-1 == copy) {
                 if (src_len == remaining // it's the first loop
-                        && (ENOSYS == errno || EXDEV == errno || EINVAL == errno)
+                        && (ENOSYS == errno // the kernel doesn't support it
+                            || EXDEV == errno // the files are incompatible due to devices
+                            || EINVAL == errno) // the filesystem doesn't like us, e.g. block alignment
                         ) {
                             copy_fallback(src_fd, fd, src_len);
                             break;
@@ -126,7 +128,6 @@ int main(int argc, char *argv[]) {
                 perror("copy_file_range");
                 exit(3);
             }
-            printf("lol\n");
             remaining -= copy;
         } while (remaining > 0);
 
