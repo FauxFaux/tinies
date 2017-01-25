@@ -115,6 +115,7 @@ static int try_copy_file_range(int src_fd, int dest_fd, const size_t len) {
             if (len == remaining // it's the first loop
                 && (ENOSYS == errno // the kernel doesn't support it
                     || EXDEV == errno // the files are incompatible due to devices
+                    || EBADF == errno // the files are incompatible types
                     || EINVAL == errno) // the filesystem doesn't like us, e.g. block alignment
                     ) {
                 return COPY_FILE_TRY_ANOTHER;
@@ -200,6 +201,7 @@ static int copy_file(int src_fd, int dest_fd, const size_t len) {
 
 static void usage(const char *name) {
     fprintf(stderr, "usage: %s [-b block-size-in-bytes] [-e extra-data] to from\n", name);
+    fprintf(stderr, "usage: %s [-b ...] -u offset-to-extract from\n", name);
 }
 
 static void write_fully(int fd, const char *data, const size_t len) {
@@ -221,13 +223,54 @@ static void write_fully(int fd, const char *data, const size_t len) {
     } while (remaining > 0);
 }
 
+enum operation_t {
+    MODE_ARCHIVE,
+    MODE_UNARCHIVE,
+};
+
+int unarchive(const char *dest_root, uint64_t block_size, uint64_t pos) {
+    const uint64_t target_file_id = pos / block_size;
+    const uint64_t target_file_offset = pos % block_size;
+
+    char *target_path = calloc(sizeof(char), strlen(dest_root) + max_number_rendering + 16);
+    check("calloc target", target_path);
+
+    sprintf(target_path, "%s.%022" PRIu64, dest_root, target_file_id);
+    int fd = open(target_path, O_RDONLY);
+    check("open", -1 != fd);
+
+    off_t seek = lseek(fd, target_file_offset, SEEK_SET);
+    check("seek", -1 != seek);
+
+    uint64_t buf[2];
+    ssize_t header_read = read(fd, buf, sizeof(buf));
+    check("header_read", sizeof(buf) == header_read);
+
+    uint64_t end = buf[0];
+    uint64_t extra = buf[1];
+
+    seek = lseek(fd, extra, SEEK_CUR);
+    check("seek2", -1 != seek);
+
+    int copy = copy_file(fd, STDOUT_FILENO, end - extra - sizeof(buf));
+    check("copy_file", -1 != copy);
+
+    if (-1 == close(fd)) {
+        perror("warning: close");
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
 
     char *extra = "";
     uint64_t block_size = 1 * 1024ULL * 1024 * 1024;
     int opt;
+    enum operation_t operation = MODE_ARCHIVE;
+    uint64_t read_pos = 0;
 
-    while ((opt = getopt(argc, argv, "b:e:")) != -1) {
+    while ((opt = getopt(argc, argv, "b:e:u:")) != -1) {
         switch (opt) {
             case 'b': {
                 int64_t val = atoll(optarg);
@@ -241,12 +284,31 @@ int main(int argc, char *argv[]) {
             case 'e':
                 extra = optarg;
                 break;
+            case 'u': {
+                operation = MODE_UNARCHIVE;
+                int64_t val = atoll(optarg);
+                if (val < 16 || val >= INT64_MAX) {
+                    fprintf(stderr, "-u %" PRId64 " must be >= 32 and sane", val);
+                    return 2;
+                }
+                read_pos = (uint64_t) val;
+                break;
+            }
             case '?':
                 usage(argv[0]);
                 return 2;
             default:
                 abort();
         }
+    }
+
+    if (MODE_UNARCHIVE == operation) {
+        if (optind + 1 != argc) {
+            usage(argv[0]);
+            return 2;
+        }
+
+        return unarchive(argv[optind], block_size, read_pos);
     }
 
     if (optind + 2 != argc) {
