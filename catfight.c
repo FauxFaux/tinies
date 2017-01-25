@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <sys/sendfile.h>
 #include <sys/syscall.h>
+#include <byteswap.h>
 
 #define check(func, cond) \
     if (!(cond)) { \
@@ -44,24 +45,125 @@ static uint64_t read_hint(const char *hint_path) {
     const size_t buf_size = 22;
     char buf[buf_size];
     ssize_t found = readlink(hint_path, buf, buf_size);
-    if (found < 1 || found >= (ssize_t) buf_size) {
-        perror("warning: readlink");
+    if (-1 == found) {
+        if (ENOENT != errno) {
+            perror("warning: readlink");
+        }
+        return 0;
+    }
+
+    if (found >= (ssize_t) buf_size) {
+        fprintf(stderr, "warning: invalid link, ignoring\n");
         return 0;
     }
     buf[found] = '\0';
-    return atoll(buf);
+    long long int val = atoll(buf);
+    if (val < 0) {
+        fprintf(stderr, "warning: invalid link value, ignoring\n");
+        return 0;
+    }
+    return (uint64_t) val;
 }
 
-static void copy_fallback(int from, int to, size_t len) {
+inline static size_t smallest(size_t left, size_t right) {
+    return left < right ? left : right;
+}
+
+const int COPY_FILE_TRY_ANOTHER = 2;
+
+static int try_copy_file_range(int src_fd, int dest_fd, const size_t len) {
+    size_t remaining = len;
+    do {
+        ssize_t copy = copy_file_range(src_fd, NULL, dest_fd, NULL, remaining, 0);
+        if (-1 == copy) {
+            if (len == remaining // it's the first loop
+                && (ENOSYS == errno // the kernel doesn't support it
+                    || EXDEV == errno // the files are incompatible due to devices
+                    || EINVAL == errno) // the filesystem doesn't like us, e.g. block alignment
+                    ) {
+                return COPY_FILE_TRY_ANOTHER;
+            }
+            return -1;
+        }
+        remaining -= copy;
+    } while (remaining > 0);
+
+    return 0;
+}
+
+static int try_sendfile(int from, int to, size_t len) {
     size_t remaining = len;
     do {
         ssize_t sent = sendfile(to, from, NULL, remaining);
         if (-1 == sent) {
-            perror("sendfile");
-            exit(3);
+            if (EAGAIN == errno) {
+                continue;
+            }
+            if (len == remaining
+                && (EINVAL == errno
+                    || ENOSYS == errno)) {
+                return COPY_FILE_TRY_ANOTHER;
+            }
+
+            return -1;
         }
         remaining -= sent;
     } while (remaining > 0);
+
+    return 0;
+}
+
+static int try_fread_fwrite(int src_fd, int dest_fd, const size_t len) {
+    FILE *src = fdopen(src_fd, "rb");
+    if (!src) {
+        return 3;
+    }
+
+    FILE *dest = fdopen(dest_fd, "wb");
+    if (!dest) {
+        return 3;
+    }
+
+    size_t remaining = len;
+    do {
+        char buf[8096];
+        size_t to_read = smallest(sizeof(buf), remaining);
+        size_t found = fread(buf, 1, to_read, src);
+        if (found != to_read) {
+            return ferror(src);
+        }
+
+        size_t written = fwrite(buf, 1, to_read, dest);
+        if (written != to_read) {
+            return ferror(dest);
+        }
+
+        remaining -= to_read;
+    } while (remaining > 0);
+
+    if (0 != fclose(src)) {
+        return 4;
+    }
+
+    if (0 != fclose(dest)) {
+        return 5;
+    }
+
+    return 0;
+}
+
+static int copy_file(int src_fd, int dest_fd, const size_t len) {
+    int by_range = try_copy_file_range(src_fd, dest_fd, len);
+    if (COPY_FILE_TRY_ANOTHER != by_range) {
+        return by_range;
+    }
+
+    int by_sendfile = try_sendfile(src_fd, dest_fd, len);
+    if (COPY_FILE_TRY_ANOTHER != by_sendfile) {
+        return by_sendfile;
+    }
+
+    return try_fread_fwrite(src_fd, dest_fd, len);
 }
 
 int main(int argc, char *argv[]) {
@@ -111,24 +213,8 @@ int main(int argc, char *argv[]) {
         ssize_t written = write(fd, &src_len, sizeof(src_len));
         check("write len", written == sizeof(src_len));
 
-        size_t remaining = src_len;
-        do {
-            ssize_t copy = copy_file_range(src_fd, NULL, fd, NULL, remaining, 0);
-            if (-1 == copy) {
-                if (src_len == remaining // it's the first loop
-                    && (ENOSYS == errno // the kernel doesn't support it
-                        || EXDEV == errno // the files are incompatible due to devices
-                        || EINVAL == errno) // the filesystem doesn't like us, e.g. block alignment
-                        ) {
-                    copy_fallback(src_fd, fd, src_len);
-                    break;
-                }
-
-                perror("copy_file_range");
-                exit(3);
-            }
-            remaining -= copy;
-        } while (remaining > 0);
+        int copy = copy_file(src_fd, fd, src_len);
+        check("copy_file", 0 == copy);
 
         int src_close = close(src_fd);
         check("close src", -1 != src_close);
