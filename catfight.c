@@ -201,9 +201,28 @@ static void usage(const char *name) {
     fprintf(stderr, "usage: %s [-b block-size-in-bytes] [-e extra-data] to from\n", name);
 }
 
+static void write_fully(int fd, const char *data, const size_t len) {
+    if (0 == len) {
+        return;
+    }
+
+    size_t remaining = len;
+    do {
+        const ssize_t written = write(fd, data, remaining);
+        if (-1 == written) {
+            if (EAGAIN == errno) {
+                continue;
+            }
+            perror("write");
+            exit(4);
+        }
+        remaining -= written;
+    } while (remaining > 0);
+}
+
 int main(int argc, char *argv[]) {
 
-    char *extra = NULL;
+    char *extra = "";
     uint64_t block_size = 1 * 1024ULL * 1024 * 1024;
     int opt;
 
@@ -211,8 +230,8 @@ int main(int argc, char *argv[]) {
         switch (opt) {
             case 'b': {
                 int64_t val = atoll(optarg);
-                if (val <= 16) {
-                    fprintf(stderr, "-b %" PRId64 " must be >16\n", val);
+                if (val <= 16 || val >= INT64_MAX) {
+                    fprintf(stderr, "-b %" PRId64 " must be >16 and sane\n", val);
                     return 2;
                 }
                 block_size = (uint64_t) val;
@@ -257,7 +276,7 @@ int main(int argc, char *argv[]) {
 
     for (uint64_t target_num = hint; target_num < UINT64_MAX; ++target_num) {
         sprintf(target_path, "%s.%022" PRIu64, dest_root, target_num);
-        int fd = open(target_path, O_CREAT | O_WRONLY, 0744);
+        int fd = open(target_path, O_CREAT | O_WRONLY, 0644);
         check("open", -1 != fd);
         int lock = flock(fd, LOCK_EX | LOCK_NB);
         if (lock) {
@@ -271,18 +290,32 @@ int main(int argc, char *argv[]) {
 
         off_t seek = lseek(fd, 0, SEEK_END);
         check("lseek", -1 != seek);
-        seek = lseek(fd, 16 - (seek % 16), SEEK_CUR);
-        check("lseek 2", -1 != seek);
 
-        if (seek >= block_size) {
+        if (0 == seek) {
+            write_fully(fd, "cf1\0\0\0\0\0", 8);
+            write_fully(fd, (const char *) &target_num, 8);
+            seek = 16;
+        }
+
+        if (seek % 16 != 0) {
+            seek = lseek(fd, 16 - (seek % 16), SEEK_CUR);
+            check("lseek 2", -1 != seek);
+        }
+
+        if (seek >= (off_t) block_size) {
             if (-1 == close(fd)) {
                 perror("warning: close unwanted file");
             }
             continue;
         }
 
-        ssize_t written = write(fd, &src_len, sizeof(src_len));
-        check("write len", written == sizeof(src_len));
+        {
+            size_t extra_len = strlen(extra);
+            size_t record_end = 8 + 8 + src_len + extra_len;
+            write_fully(fd, (const char *) &record_end, sizeof(record_end));
+            write_fully(fd, (const char *) &extra_len, sizeof(extra_len));
+            write_fully(fd, extra, extra_len);
+        }
 
         int copy = copy_file(src_fd, fd, src_len);
         check("copy_file", 0 == copy);
