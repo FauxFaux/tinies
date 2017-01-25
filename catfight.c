@@ -37,8 +37,9 @@ static size_t align16(size_t val) {
 }
 
 static char *append(const char *base, const char *extra) {
-    char *created = strndup(base, strlen(base) + strlen(extra));
-    check("strndup append", created);
+    char *created = calloc(sizeof(char), strlen(base) + strlen(extra));
+    check("calloc append", created);
+    strcat(created, base);
     strcat(created, extra);
     return created;
 }
@@ -256,8 +257,9 @@ int main(int argc, char *argv[]) {
     const char *dest_root = argv[optind];
     const char *src = argv[optind + 1];
 
-    char *target_path = strndup(dest_root, strlen(dest_root) + max_number_rendering);
-    check("strndup target", target_path);
+    char *target_path = calloc(sizeof(char), strlen(dest_root) + max_number_rendering);
+    check("calloc target", target_path);
+    memcpy(target_path, dest_root, strlen(dest_root));
 
     int src_fd = open(src, O_RDONLY);
     check("open src", -1 != src_fd);
@@ -267,7 +269,8 @@ int main(int argc, char *argv[]) {
         struct stat st;
         int stat_err = fstat(src_fd, &st);
         check("stat src", -1 != stat_err);
-        src_len = st.st_size;
+        assert(st.st_size >= 0);
+        src_len = (size_t) st.st_size;
     }
 
     char *hint_path = append(dest_root, ".hint");
