@@ -7,6 +7,7 @@
 
 #include <libgen.h>
 #include <sys/wait.h>
+#include <sys/types.h>
 
 const int ESPONGER = 241;
 const int ESPONGER_EXEC = 242;

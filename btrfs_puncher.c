@@ -1,5 +1,6 @@
 #define _GNU_SOURCE             /* See feature_test_macros(7) */
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
