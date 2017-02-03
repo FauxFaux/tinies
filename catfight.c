@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
                 operation = MODE_UNARCHIVE;
                 int64_t val = atoll(optarg);
                 if (val < 16 || val >= INT64_MAX) {
-                    fprintf(stderr, "-u %" PRId64 " must be >= 32 and sane", val);
+                    fprintf(stderr, "-u %" PRId64 " must be >= 32 and sane\n", val);
                     return 2;
                 }
                 read_pos = (uint64_t) val;
