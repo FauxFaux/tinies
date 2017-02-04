@@ -4,7 +4,7 @@ project(tinies)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -Wall -pedantic -Wextra -mavx -fsanitize=address")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic -Wextra -mavx -fsanitize=address")
 
-foreach (linux btrfs_puncher drop-privs-harder catfight sponger xwinswitch xlines)
+foreach (linux btrfs_puncher drop-privs-harder catfight safenod sponger xwinswitch xlines)
     add_executable(${linux} ${linux}.c)
 endforeach (linux)
 
