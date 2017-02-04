@@ -24,6 +24,7 @@ int main() {
     const size_t max_sub_path_length = 20;
     if (sizeof(template) - end < max_sub_path_length) {
         fprintf(stderr, "generated temporary file path is too long: %s\n", template);
+        return 5;
     }
 
     strcpy(template + end, "/dev");
