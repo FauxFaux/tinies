@@ -7,13 +7,19 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-int main() {
-    char *tmp = getenv("TMPDIR");
-    if (NULL == tmp) {
+int main(int argc, char *argv[]) {
+    char *tmp;
+
+    if (3 == argc && !strcmp("-p", argv[1])) {
+        tmp = argv[2];
+    } else if (1 == argc) {
         tmp = "/tmp";
+    } else {
+        fprintf(stderr, "usage: %s [-p /tmp/dir/path]\n", argv[0]);
+        return 1;
     }
 
-    char template[512];
+    char template[512] = {};
     const int end = snprintf(template, sizeof(template), "%s/root.XXXXXX", tmp);
     if (NULL == mkdtemp(template)) {
         perror("mkdtemp");
