@@ -130,6 +130,7 @@ static int do_mount(const char *src, const char *dest) {
 static int clean_path(const char *path) {
     char *resolved = realpath(path, NULL);
     if (!resolved) {
+        fprintf(stderr, "error: must be an existing, findable directory: %s\n", path);
         perror("realpath");
         return 2;
     }
