@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char template[512] = {};
+    char template[512] = {0};
     const int end = snprintf(template, sizeof(template), "%s/root.XXXXXX", tmp);
     if (NULL == mkdtemp(template)) {
         perror("mkdtemp");
