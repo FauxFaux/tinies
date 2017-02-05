@@ -1,0 +1,56 @@
+#!/bin/sh
+set -eu
+
+T=$(safenod)
+
+## "copy_verbatim /etc/foo" copies "/etc/foo" to "$T/etc/foo".
+copy_verbatim() {
+    mkdir -p "${T}$(dirname "${1}")"
+    cp -a --reflink=auto "$(readlink -f "${1}")" "${T}${1}"
+}
+
+copy_with_deps() {
+    /lib64/ld-linux-x86-64.so.2 --list "${1}" | awk -F' ' '{print $(NF-1)}' | egrep '^/' | while read item; do
+        copy_verbatim "${item}"
+    done
+    copy_verbatim "${1}"
+}
+
+copy_from_path() {
+    copy_with_deps "$(which "$1")"
+}
+
+### ensure libnss is available (ability to resolve user ids, localhost, etc.)
+for t in compat files dns nis; do
+    copy_with_deps /lib/x86_64-linux-gnu/libnss_${t}.so.2
+done
+
+copy_verbatim /etc/hosts
+copy_verbatim /etc/resolv.conf
+copy_verbatim /etc/services
+copy_verbatim /etc/protocols
+
+cat > $T/etc/nsswitch.conf <<E
+passwd:     compat
+group:      compat
+shadow:     compat
+gshadown:   files
+
+hosts:      files dns
+networks:   files
+protocols:  db files
+services:   db files
+ethers:     db files
+rpc:        db files
+
+netgroup:   nis
+E
+echo 'root:x:0:0:root:/root:/bin/bash' > $T/etc/passwd
+
+### stuff we actually want:
+
+copy_from_path rsync
+copy_from_path ssh
+copy_from_path dash
+
+unshare -rm sh -c 'chroot '$T' dash'
