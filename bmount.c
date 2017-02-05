@@ -107,7 +107,10 @@ static int do_mount(const char *src, const char *dest) {
                 continue;
             }
             fprintf(stderr, "dest directory must be empty; contained '%s'\n", ent->d_name);
-            closedir(dir);
+            if (closedir(dir)) {
+                perror("closedir(dest)");
+                return 29;
+            }
             return 27;
         }
 
