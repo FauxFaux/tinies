@@ -1,8 +1,7 @@
 #!/bin/sh
 set -eu
 
-mkdir --parents --mode=0700 ~/.bmounts/
-T=$(safenod -p ~/.bmounts)
+T=$1
 
 ## "copy_verbatim /etc/foo" copies "/etc/foo" to "$T/etc/foo".
 copy_verbatim() {
@@ -55,5 +54,3 @@ getent passwd $(whoami)
 copy_from_path rsync
 copy_from_path ssh
 copy_from_path dash
-
-echo $T
