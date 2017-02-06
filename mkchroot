@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-T=$(safenod)
+mkdir --parents --mode=0700 ~/.bmounts/
+T=$(safenod -p ~/.bmounts)
 
 ## "copy_verbatim /etc/foo" copies "/etc/foo" to "$T/etc/foo".
 copy_verbatim() {
@@ -45,7 +46,9 @@ rpc:        db files
 
 netgroup:   nis
 E
-echo 'root:x:0:0:root:/root:/bin/bash' > $T/etc/passwd
+(echo 'root:x:0:0:root:/root:/bin/bash'
+getent passwd $(whoami)
+ )> $T/etc/passwd
 
 ### stuff we actually want:
 
@@ -53,4 +56,4 @@ copy_from_path rsync
 copy_from_path ssh
 copy_from_path dash
 
-unshare -rm sh -c 'chroot '$T' dash'
+echo $T
