@@ -163,17 +163,40 @@ int main(int argc, char *argv[]) {
     *chroot_end = '\0';
 
     {
+        int pipes[2];
+        if (pipe(pipes)) {
+            perror("pipe");
+            return 34;
+        }
+
         pid_t pid = vfork();
-        switch (pid) {
-            case 0: {
-                char *args[] = {"/home/faux/code/tinies/mkchroot", buffer, NULL};
-                execvp(args[0], args);
-                perror("execvp mkchroot");
-                return 31;
+        if (-1 == pid) {
+            perror("fork");
+            return 32;
+        }
+
+        if (0 == pid) {
+            while (dup2(pipes[1], STDOUT_FILENO)) {
+                if (EINTR == errno) {
+                    continue;
+                }
+                perror("dup2");
+                return 35;
             }
-            case -1:
-                perror("fork");
-                return 32;
+            if (close(pipes[0]) || close(pipes[1])) {
+                perror("close");
+                return 35;
+            }
+
+            char *args[] = {"mkchroot", NULL};
+            execvp(args[0], args);
+            perror("execvp mkchroot");
+            return 31;
+        }
+
+        if (close(pipes[1])) {
+            perror("close");
+            return 36;
         }
 
         int status = 0;
