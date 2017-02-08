@@ -17,6 +17,7 @@
 #include <fcntl.h>
 
 #include "cap-helper.h"
+#include "copy.h"
 
 static char buffer[8096];
 static char *chroot_end;
@@ -68,9 +69,11 @@ static void print_hint(const char *src) {
 }
 
 int create_callback(const char *src,
-                    const struct stat *s,
+                    const struct stat *st,
                     int types,
                     struct FTW *ftw) {
+    (void)(ftw);
+
     if (strncmp(chroot_src, src, strlen(chroot_src))) {
         fprintf(stderr, "illegal template: '%s' must be under '%s'\n", src, chroot_src);
         return 1;
@@ -91,65 +94,35 @@ int create_callback(const char *src,
         return 0;
     }
 
-    FILE *from = fopen(src, "rb");
-    if (!from) {
-        perror("fopen");
+    if (st->st_size < 0) {
+        return 6;
+    }
+
+    int from = open(src, O_RDONLY);
+    if (-1 == from) {
+        perror("open");
         return 4;
     }
 
-    const int fd = open(buffer, O_CREAT | O_EXCL | O_WRONLY, !access(src, X_OK) ? 0700 : 0600);
-    if (-1 == fd) {
-        if (fclose(from)) {
-            perror("warning: fclose");
+    const int to = open(buffer, O_CREAT | O_EXCL | O_WRONLY, !access(src, X_OK) ? 0700 : 0600);
+    if (-1 == to) {
+        if (close(from)) {
+            perror("warning: close");
         }
         return 5;
     }
 
-    FILE *to = fdopen(fd, "wb");
-    if (!to) {
-        if (fclose(from)) {
-            perror("warning: fclose");
-        }
-        return 6;
+    int result = copy_file(from, to, (const size_t) st->st_size);
+    if (close(from)) {
+        perror("warning: close");
     }
 
-    while (true) {
-        char buf[4096];
-        size_t red = fread(buf, 1, sizeof(buf), from);
-        if (red == 0) {
-            if (feof(from)) {
-                break;
-            }
-            perror("fread");
-            goto fail;
-        }
-        if (red != fwrite(buf, 1, red, to)) {
-            perror("fwrite");
-            goto fail;
-        }
-    }
-
-    if (fclose(from)) {
-        perror("fclose");
+    if (close(to)) {
+        perror("close");
         return 9;
     }
 
-    if (fclose(to)) {
-        perror("fclose");
-        return 10;
-    }
-
-    return 0;
-
-    fail:
-    if (fclose(from)) {
-        perror("warning: fclose");
-    }
-
-    if (fclose(to)) {
-        perror("warning: fclose");
-    }
-    return 8;
+    return result;
 }
 
 int main(int argc, char *argv[]) {
