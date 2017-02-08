@@ -1,15 +1,17 @@
 #define _GNU_SOURCE
 
+#include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <unistd.h>
 #include <sched.h>
+#include <wait.h>
 
 #include <sys/mount.h>
 #include <sys/stat.h>
-#include <wait.h>
 #include <sys/prctl.h>
 
 #include "cap-helper.h"
@@ -18,28 +20,86 @@ static void usage(const char *argv0) {
     fprintf(stderr, "usage: %s --reading path command [command args...]\n", argv0);
 }
 
+static bool ends_with(const char *haystack, const char *needle) {
+    if (strlen(haystack) < strlen(needle)) {
+        return false;
+    }
+
+    return !strcmp(haystack + strlen(haystack) - strlen(needle), needle);
+}
+
+void print_hint(const char *src) {
+    char *resolved = realpath(src, NULL);
+    if (!resolved) {
+        perror("warning: realpath");
+        resolved = strdup("<unable to resolve>");
+        if (!resolved) {
+            perror("strdup");
+            return;
+        }
+    }
+
+    char *cwd = get_current_dir_name();
+    if (!cwd) {
+        perror("warning: get_current_dir_name");
+        cwd = strdup("<unable to resolve>");
+        if (!cwd) {
+            perror("strdup");
+            return;
+        }
+    }
+
+    fprintf(stderr, "path must be fully absolute; here's some generated suggestions:\n"
+                    " - $(pwd)/%s\n"
+                    " - %s\n"
+                    " - %s/%s\n",
+            src,
+            resolved,
+            cwd, src);
+
+    free(cwd);
+    free(resolved);
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 4 || strcmp(argv[1], "--reading")) {
         usage(argv[0]);
         return 1;
     }
 
-    char buffer[512] = "/tmp/root.XXXXXX";
+    const char *src = argv[2];
+
+    // non-absolute paths are just plain confusing here, as one expects
+    // to be consistent inside and outside the chrot.
+    // . and .. paths are also confusing (but not dangerous),
+    // and mount --bind hates them anyway.
+    if ('/' != *src
+        || strstr(src, "/../") || ends_with(src, "/..")
+        || strstr(src, "/./") || ends_with(src, "/.")) {
+
+        print_hint(src);
+        return 7;
+    }
+
+    const char *template = "/tmp/root.XXXXXX";
+
+    // 20 ~= min(strlen("/dev/null"), strlen("/dev/urandom"), ..
+    char *buffer = calloc(strlen(template) + 20 + strlen(src), sizeof(char));
+    strcpy(buffer, template);
+
+    if (!buffer) {
+        perror("calloc");
+        return 4;
+    }
+
     if (NULL == mkdtemp(buffer)) {
         perror("mkdtemp");
         return 2;
     }
 
-    const char *src = argv[2];
+    assert(strlen(buffer) == strlen(template));
 
-    // 20 ~= min(strlen("/dev/null"), strlen("/dev/urandom"), ..
-    const size_t max_sub_path_length = 20;
-    if (sizeof(buffer) - strlen(buffer) < max_sub_path_length) {
-        fprintf(stderr, "generated temporary file path is too long: %s\n", buffer);
-        return 3;
-    }
-
-    char *const chroot_end = buffer + strlen(buffer);
+    char *const chroot_end = buffer + strlen(template);
 
     if (change_cap_state(CAP_SYS_ADMIN, CAP_EFFECTIVE, CAP_SET)) {
         fprintf(stderr, "warning: couldn't effective sys_admin\n");
@@ -128,11 +188,25 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    strcpy(chroot_end, "/foo");
-    if (mkdir(buffer, 0700)) {
-        perror("mkdir");
-        return 40;
+    size_t pos = 1;
+    while (pos < strlen(src)) {
+        // starting at the start, find the next folder component
+        // e.g. "/foo/bar" -> "/foo" the first time, "/foo/bar" the second time
+        char *const slash_in_src = strchrnul(src + pos, '/');
+        pos = slash_in_src - src + 1;
+
+        // set our path to the src string up to this point
+        strncpy(chroot_end, src, pos);
+        chroot_end[pos] = '\0';
+
+        // create that directory, but don't panic if it's already there
+        if (mkdir(buffer, 0700) && EEXIST != errno) {
+            perror("mkdir");
+            return 40;
+        }
     }
+
+    assert(strlen(buffer) == strlen(src) + strlen(template));
 
     if (change_cap_state(CAP_SYS_ADMIN, CAP_EFFECTIVE, CAP_SET)) {
         fprintf(stderr, "warning: couldn't effective sys_admin\n");
@@ -172,6 +246,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "couldn't drop sys_chroot\n");
         return 45;
     }
+
+    free(buffer);
 
     if (chdir("/")) {
         perror("chdir");
