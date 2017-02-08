@@ -6,18 +6,24 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <getopt.h>
+#include <ftw.h>
 #include <unistd.h>
 #include <sched.h>
-#include <wait.h>
 
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>
+#include <fcntl.h>
 
 #include "cap-helper.h"
 
+static char buffer[8096];
+static char *chroot_end;
+static char *chroot_src;
+
 static void usage(const char *argv0) {
-    fprintf(stderr, "usage: %s --reading path command [command args...]\n", argv0);
+    fprintf(stderr, "usage: %s --reading path --chroot-template $(mkchroot) -- command [command args...]\n", argv0);
 }
 
 static bool ends_with(const char *haystack, const char *needle) {
@@ -28,7 +34,7 @@ static bool ends_with(const char *haystack, const char *needle) {
     return !strcmp(haystack + strlen(haystack) - strlen(needle), needle);
 }
 
-void print_hint(const char *src) {
+static void print_hint(const char *src) {
     char *resolved = realpath(src, NULL);
     if (!resolved) {
         perror("warning: realpath");
@@ -61,13 +67,148 @@ void print_hint(const char *src) {
     free(resolved);
 }
 
+int create_callback(const char *src,
+                    const struct stat *s,
+                    int types,
+                    struct FTW *ftw) {
+    if (strncmp(chroot_src, src, strlen(chroot_src))) {
+        fprintf(stderr, "illegal template: '%s' must be under '%s'\n", src, chroot_src);
+        return 1;
+    }
+
+    if (strlen(src) - strlen(chroot_src) + (chroot_end - buffer) >= sizeof(buffer)) {
+        fprintf(stderr, "chroot part too long: '%s'\n", src);
+        return 2;
+    }
+
+    strcpy(chroot_end, src + strlen(chroot_src));
+
+    if ((types & FTW_D) == FTW_D) {
+        if (mkdir(buffer, 0700) && EEXIST != errno) {
+            perror("mkdir");
+            return 3;
+        }
+        return 0;
+    }
+
+    FILE *from = fopen(src, "rb");
+    if (!from) {
+        perror("fopen");
+        return 4;
+    }
+
+    const int fd = open(buffer, O_CREAT | O_EXCL | O_WRONLY, !access(src, X_OK) ? 0700 : 0600);
+    if (-1 == fd) {
+        if (fclose(from)) {
+            perror("warning: fclose");
+        }
+        return 5;
+    }
+
+    FILE *to = fdopen(fd, "wb");
+    if (!to) {
+        if (fclose(from)) {
+            perror("warning: fclose");
+        }
+        return 6;
+    }
+
+    while (true) {
+        char buf[4096];
+        size_t red = fread(buf, 1, sizeof(buf), from);
+        if (red == 0) {
+            if (feof(from)) {
+                break;
+            }
+            perror("fread");
+            goto fail;
+        }
+        if (red != fwrite(buf, 1, red, to)) {
+            perror("fwrite");
+            goto fail;
+        }
+    }
+
+    if (fclose(from)) {
+        perror("fclose");
+        return 9;
+    }
+
+    if (fclose(to)) {
+        perror("fclose");
+        return 10;
+    }
+
+    return 0;
+
+    fail:
+    if (fclose(from)) {
+        perror("warning: fclose");
+    }
+
+    if (fclose(to)) {
+        perror("warning: fclose");
+    }
+    return 8;
+}
+
 int main(int argc, char *argv[]) {
-    if (argc < 4 || strcmp(argv[1], "--reading")) {
+    static struct option long_options[] = {
+            {"reading",          required_argument, 0, 'r'},
+            {"chroot-template",  required_argument, 0, 't'},
+            {"disable-security", no_argument,       0, 'D'},
+            {0, 0,                                  0, 0}
+    };
+
+    char *src = NULL;
+    chroot_src = NULL;
+    bool security = true;
+
+    while (true) {
+        int option_index = 0;
+        int c = getopt_long(argc, argv, "r:t:", long_options, &option_index);
+        if (-1 == c) {
+            break;
+        }
+        switch (c) {
+            case 'r':
+                free(src);
+                src = strdup(optarg);
+                if (!src) {
+                    perror("strdup");
+                    return 7;
+                }
+                break;
+            case 't':
+                free(chroot_src);
+                chroot_src = strdup(optarg);
+                if (!chroot_src) {
+                    perror("strdup");
+                    return 7;
+                }
+                break;
+            case 'D':
+                security = false;
+                break;
+            case '?':
+                usage(argv[0]);
+                return 1;
+            default:
+                fprintf(stderr, "error: unexpected error from getopt\n");
+                return 1;
+        }
+    }
+
+    if (!src || !chroot_src) {
+        fprintf(stderr, "both --reading and --chroot-template are required\n");
         usage(argv[0]);
         return 1;
     }
 
-    const char *src = argv[2];
+    if (optind == argc) {
+        usage(argv[0]);
+        return 1;
+    }
 
     // non-absolute paths are just plain confusing here, as one expects
     // to be consistent inside and outside the chrot.
@@ -84,13 +225,12 @@ int main(int argc, char *argv[]) {
     const char *template = "/tmp/root.XXXXXX";
 
     // 20 ~= min(strlen("/dev/null"), strlen("/dev/urandom"), ..
-    char *buffer = calloc(strlen(template) + 20 + strlen(src), sizeof(char));
-    strcpy(buffer, template);
-
-    if (!buffer) {
-        perror("calloc");
-        return 4;
+    if (strlen(template) + strlen(src) > sizeof(buffer)) {
+        fprintf(stderr, "src path too long: '%s'\n", src);
+        return 5;
     }
+
+    strcpy(buffer, template);
 
     if (NULL == mkdtemp(buffer)) {
         perror("mkdtemp");
@@ -99,23 +239,23 @@ int main(int argc, char *argv[]) {
 
     assert(strlen(buffer) == strlen(template));
 
-    char *const chroot_end = buffer + strlen(template);
+    chroot_end = buffer + strlen(template);
 
     if (change_cap_state(CAP_SYS_ADMIN, CAP_EFFECTIVE, CAP_SET)) {
         fprintf(stderr, "warning: couldn't effective sys_admin\n");
     }
 
-    if (unshare(CLONE_NEWNS)) {
+    if (security && unshare(CLONE_NEWNS)) {
         perror("unshare");
         return 10;
     }
 
-    if (mount("none", "/", NULL, MS_REC | MS_PRIVATE, NULL)) {
+    if (security && mount("none", "/", NULL, MS_REC | MS_PRIVATE, NULL)) {
         perror("mount private");
         return 11;
     }
 
-    if (mount("tmpfs", buffer, "tmpfs", 0, "")) {
+    if (security && mount("tmpfs", buffer, "tmpfs", 0, "")) {
         perror("mount tmpfs");
         return 14;
     }
@@ -126,7 +266,7 @@ int main(int argc, char *argv[]) {
     }
 
     strcpy(chroot_end, "/dev");
-    if (0 != mkdir(buffer, 0700)) {
+    if (mkdir(buffer, 0700)) {
         perror("mkdir /dev");
         return 21;
     }
@@ -158,57 +298,6 @@ int main(int argc, char *argv[]) {
     if (change_cap_state(CAP_MKNOD, CAP_PERMITTED, CAP_CLEAR)) {
         fprintf(stderr, "couldn't drop mknod\n");
         return 24;
-    }
-
-    *chroot_end = '\0';
-
-    {
-        int pipes[2];
-        if (pipe(pipes)) {
-            perror("pipe");
-            return 34;
-        }
-
-        pid_t pid = vfork();
-        if (-1 == pid) {
-            perror("fork");
-            return 32;
-        }
-
-        if (0 == pid) {
-            while (dup2(pipes[1], STDOUT_FILENO)) {
-                if (EINTR == errno) {
-                    continue;
-                }
-                perror("dup2");
-                return 35;
-            }
-            if (close(pipes[0]) || close(pipes[1])) {
-                perror("close");
-                return 35;
-            }
-
-            char *args[] = {"mkchroot", NULL};
-            execvp(args[0], args);
-            perror("execvp mkchroot");
-            return 31;
-        }
-
-        if (close(pipes[1])) {
-            perror("close");
-            return 36;
-        }
-
-        int status = 0;
-        if (-1 == waitpid(pid, &status, 0)) {
-            perror("waitpid");
-            return 33;
-        }
-
-        if (status) {
-            fprintf(stderr, "setting up chroot failed\n");
-            return status;
-        }
     }
 
     size_t pos = 1;
@@ -250,6 +339,11 @@ int main(int argc, char *argv[]) {
         return 44;
     }
 
+    if (nftw(chroot_src, &create_callback, 32, FTW_PHYS)) {
+        fprintf(stderr, "failed to populate chroot\n");
+        return 49;
+    }
+
     if (change_cap_state(CAP_SYS_CHROOT, CAP_EFFECTIVE, CAP_SET)) {
         fprintf(stderr, "warning: couldn't effective sys_admin\n");
     }
@@ -269,8 +363,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "couldn't drop sys_chroot\n");
         return 45;
     }
-
-    free(buffer);
 
     if (chdir("/")) {
         perror("chdir");
@@ -293,7 +385,7 @@ int main(int argc, char *argv[]) {
         return 53;
     }
 
-    execvp(argv[3], &argv[3]);
+    execvp(argv[optind], &argv[optind]);
     perror("execvp");
     return 3;
 }

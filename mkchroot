@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-T=$1
+T=$(mktemp -d)
 
 ## "copy_verbatim /etc/foo" copies "/etc/foo" to "$T/etc/foo".
 copy_verbatim() {
@@ -54,3 +54,5 @@ getent passwd $(whoami)
 copy_from_path rsync
 copy_from_path ssh
 copy_from_path dash
+
+echo $T
