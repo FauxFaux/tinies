@@ -173,6 +173,11 @@ int main(int argc, char *argv[]) {
         return 45;
     }
 
+    if (chdir("/")) {
+        perror("chdir");
+        return 47;
+    }
+
     if (change_cap_state(CAP_DAC_READ_SEARCH, CAP_INHERITABLE, CAP_SET)) {
         fprintf(stderr, "error: couldn't inheritable cap_dac_read_search\n");
         return 51;
