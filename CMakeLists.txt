@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.4)
 project(tinies)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -Wall -pedantic -Wextra -mavx")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic -Wextra -mavx")
+set(ALL_COMPILES_OPTIONS, "\
+-Wall -pedantic -Wextra -Wformat -Werror=format-security \
+-fstack-protector-strong \
+-D_FORTIFY_SOURCE=2 \
+-mavx")
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 ${ALL_COMPILES_OPTIONS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ${ALL_COMPILES_OPTIONS}")
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
