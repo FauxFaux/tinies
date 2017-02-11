@@ -62,7 +62,8 @@ def main():
             ['--'] + args)
 
     if parsed.verbose:
-        print('$ ' + ' '.join("'{}'".format(x.replace("'", r"'\''")) for x in cmd))
+        SIMPLE = re.compile('^[a-zA-Z0-9_/-]*$')
+        print('$ ' + ' '.join(x if SIMPLE.match(x) else ("'{}'".format(x.replace("'", r"'\''"))) for x in cmd))
 
     import subprocess
     sys.exit(subprocess.call(cmd))
