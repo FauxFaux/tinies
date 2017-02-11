@@ -34,24 +34,26 @@ def main():
     parser = argparse.ArgumentParser(description='Limit syscalls for a command')
     parser.add_argument('syscalls', metavar='N', type=str, nargs='*')
     parser.add_argument('--blacklist', dest='blacklist', action='store_const', const=True, default=False)
+    parser.add_argument('-v', dest='verbose', action='store_const', const=True, default=False)
     parsed = parser.parse_args(sys.argv[1:splitter])
     seen = set()
     for syscall in parsed.syscalls:
         seen.update(expand_group(syscall))
 
     for name, reason in {
-            'write': 'may impact printing errors',
-            'read': 'may impact loading the binary at all',
+            'write': 'may impact printing errors (it may just hang)',
+            'writev': 'may impact printing errors (it may just hang)',
             'execve': 'we won\'t be able to actually run the child',
             }.items():
-        if not SYSCALLS[machine][name] in seen:
-            print('warning: {} not present, {}'.format(name, reason))
+        if parsed.blacklist ^ (not SYSCALLS[machine][name] in seen):
+            print('warning: {} not present (consider including @critical), {}'.format(name, reason))
 
     cmd = (['seccomp-tool', '--error', '38', '--deny' if parsed.blacklist else '--allow'] +
             [str(syscall) for syscall in sorted(seen)] +
             ['--'] + args)
 
-    print('$ ' + ' '.join("'{}'".format(x.replace("'", r"'\''")) for x in cmd))
+    if parsed.verbose:
+        print('$ ' + ' '.join("'{}'".format(x.replace("'", r"'\''")) for x in cmd))
 
     import subprocess
     sys.exit(subprocess.call(cmd))

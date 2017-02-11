@@ -87,6 +87,6 @@ int main(int argc, char *argv[]) {
 
     seccomp_release(ctx);
     execvp(argv[arg], &argv[arg]);
-    perror("execv");
+    perror("execve");
     return 5;
 }
