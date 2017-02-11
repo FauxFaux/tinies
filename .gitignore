@@ -16,3 +16,4 @@ xwinswitch
 xlines
 build
 cmake-build-*
+seccomp-util.c
