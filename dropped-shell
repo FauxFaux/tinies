@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+if [ -z "${SSH_CONNECTION+x}" ]; then
+    # not an ssh connection, don't take away their fun
+    exec bash "$@"
+fi
+
+exec drop-all-caps drop-privs-harder bash "$@"
+
