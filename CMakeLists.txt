@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ${ALL_COMPILES_OPTIONS}")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
 
-foreach (linux bmount btrfs_puncher drop-privs-harder catfight grant-read nftw safenod safe-read seccomp-tool sponger xwinswitch xlines)
+foreach (linux bmount btrfs_puncher drop-all-caps drop-privs-harder catfight grant-read nftw safenod safe-read seccomp-tool sponger xwinswitch xlines)
     add_executable(${linux} ${linux}.c)
 endforeach (linux)
 
@@ -26,6 +26,7 @@ target_link_libraries(seccomp-tool ${PC_SECCOMP_LIBRARIES})
 
 pkg_check_modules(PC_CAP libcap)
 target_link_libraries(bmount ${PC_CAP_LIBRARIES})
+target_link_libraries(drop-all-caps ${PC_CAP_LIBRARIES})
 target_link_libraries(grant-read ${PC_CAP_LIBRARIES})
 target_link_libraries(safe-read ${PC_CAP_LIBRARIES})
 
