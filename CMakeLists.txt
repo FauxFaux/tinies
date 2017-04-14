@@ -26,7 +26,6 @@ target_link_libraries(seccomp-tool ${PC_SECCOMP_LIBRARIES})
 
 pkg_check_modules(PC_CAP libcap)
 target_link_libraries(bmount ${PC_CAP_LIBRARIES})
-target_link_libraries(drop-all-caps ${PC_CAP_LIBRARIES})
 target_link_libraries(grant-read ${PC_CAP_LIBRARIES})
 target_link_libraries(safe-read ${PC_CAP_LIBRARIES})
 

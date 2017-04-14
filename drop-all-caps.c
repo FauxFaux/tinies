@@ -1,14 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <errno.h>
 #include <unistd.h>
 
-#include <sys/capability.h>
 #include <sys/prctl.h>
 
 #include <linux/securebits.h>
 
-int find_max_cap() {
+
+static int find_max_cap() {
 
     FILE *f = fopen("/proc/sys/kernel/cap_last_cap", "r");
 
@@ -64,22 +65,16 @@ int main(int argc, char **argv) {
 
     const int max_cap = find_max_cap();
     for (int cap = 0; cap <= max_cap; ++cap) {
-        if (!CAP_IS_SUPPORTED(cap)) {
+        if (!prctl(PR_CAPBSET_DROP, cap)) {
             continue;
         }
 
-        if (!cap_drop_bound(cap)) {
+        if (EINVAL == errno) {
+            // not supported on this kernel
             continue;
         }
 
-        perror("couldn't drop");
-        char *name = cap_to_name(cap);
-        if (name) {
-            fprintf(stderr, "failed at: %s\n", name);
-            cap_free(name);
-        } else {
-            fprintf(stderr, "couldn't work out the name of the failing capability\n");
-        }
+        perror("couldn't drop a valid capability");
         return EXIT_FAILURE;
     }
 
