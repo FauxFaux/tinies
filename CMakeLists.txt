@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ${ALL_COMPILES_OPTIONS}")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
 
-foreach (linux bmount btrfs_puncher drop-all-caps drop-privs-harder catfight grant-read nftw safenod safe-read seccomp-tool sponger xwinswitch xlines)
+foreach (linux bmount btrfs_puncher drop-all-caps drop-privs-harder catfight grant-read have-dropped-all-caps nftw safenod safe-read seccomp-tool sponger xwinswitch xlines)
     add_executable(${linux} ${linux}.c)
 endforeach (linux)
 
