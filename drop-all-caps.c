@@ -40,5 +40,8 @@ int main(int argc, char **argv) {
         perror("execvp");
         return EXIT_FAILURE;
     }
+
+    // unreachable: execvp lied to us
+    return EXIT_FAILURE;
 }
 
